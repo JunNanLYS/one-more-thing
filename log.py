@@ -5,7 +5,7 @@ from datetime import datetime
 import config as cfg
 
 time_ = datetime.now().strftime("%Y-%m-%d")
-prefix = os.path.join(cfg.__abspath__, "logs")
+prefix = cfg.logPath
 filename = os.path.join(prefix, f"{time_}.log")
 
 # logging config
