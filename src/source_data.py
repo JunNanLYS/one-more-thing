@@ -13,6 +13,7 @@ class SourceData(QObject):
         self._loadEvent = threading.Event()
         self._isChanged = False
         self._dict = {}
+        self.lock = threading.Lock()
         self.path = path
         self.filename = getFilename(path)
 
@@ -27,31 +28,36 @@ class SourceData(QObject):
 
     @property
     def isChanged(self) -> bool:
-        return self._isChanged
+        with self.lock:
+            return self._isChanged
 
     def setState(self, state: bool) -> None:
-        self._isChanged = state
+        with self.lock:
+            self._isChanged = state
 
     def load(self) -> None:
-        logger.debug(f"Load data from {self.filename}")
         self._loadEvent.clear()
         with open(self.path, "r") as f:
             self._dict = json.load(f)
         self._loadEvent.set()
         logger.debug(f"Data loaded from {self.filename}")
 
-    def update(self) -> None:
-        if not self._isChanged:
-            return
+    def update(self, user: QObject) -> None:
+        with self.lock:
+            if not self._isChanged:
+                return
 
-        threading.Thread(target=self.__update).start()
+        threading.Thread(target=self.__update, args=(user,)).start()
 
-    def __update(self) -> None:
-        logger.debug(f"Update data to {self.filename}")
-        with open(self.path, "w") as f:
-            json.dump(self._dict, f, indent=4)
-        self._isChanged = False
-        logger.debug(f"Update data finished to {self.filename}")
+    def __update(self, user: QObject) -> None:
+        with self.lock:
+            logger.debug(f"Update data to {self.filename}")
+            with open(self.path, "w") as f:
+                json.dump(self._dict, f, indent=4)
+            self._isChanged = False
+            logger.debug(f"Update data finished to {self.filename}")
+            self.dataUpdated.emit(user)
 
     dataChanged = pyqtSignal()
-    updateData = pyqtSignal()
+    dataUpdated = pyqtSignal(QObject)
+    updateData = pyqtSignal(QObject)
