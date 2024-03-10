@@ -4,7 +4,7 @@ __version__ = "0.0.1"
 __abspath__ = os.path.abspath(os.path.dirname(__file__))
 __project__ = "one-more-thing"
 
-defaultFormat = {
+defaultData = {
     "name": "No name",
     "icon": "F-CAR",
     "hours": 0.0,
@@ -12,7 +12,23 @@ defaultFormat = {
     "subItems": []
 }
 
-if os.path.exists(os.path.join(__abspath__, "data")):
-    os.makedirs(os.path.join(__abspath__, "data"))
-if os.path.exists(os.path.join(__abspath__, "logs")):
-    os.makedirs(os.path.join(__abspath__, "logs"))
+# path
+logPath = r"./logs"
+dataPath = r"./data"
+resourcePath = r"./resources"
+
+# current working directory
+currentWorkingDirectory = os.getcwd()
+projectRootDirectory = os.path.dirname(__file__)
+if currentWorkingDirectory != projectRootDirectory:
+    print(f"Current working directory is {currentWorkingDirectory}, change to {projectRootDirectory}")
+    os.chdir(projectRootDirectory)
+else:
+    print(f"Current working directory is {currentWorkingDirectory}")
+
+if not os.path.exists(dataPath):
+    os.makedirs(dataPath)
+if not os.path.exists(logPath):
+    os.makedirs(logPath)
+if not os.path.exists(resourcePath):
+    raise FileNotFoundError(f"Resource path {resourcePath} not found")
