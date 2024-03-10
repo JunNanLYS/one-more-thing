@@ -1,7 +1,9 @@
 import json
 import os
 import threading
+import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
@@ -9,32 +11,31 @@ import config as cfg
 from log import logger
 from src.source_data import SourceData
 
-SOURCE_FILE_PATH = os.path.join(cfg.__abspath__, "data")
-
 
 class SourceDataManager(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
+        logger.debug("---SourceDataManager initializing---")
         self._datas: list[SourceData] = []
         self.dataToPath: dict[SourceData, str] = {}
-        self._loadEvent = threading.Event()
+        self._loadLock = threading.Lock()
 
-        threading.Thread(target=self.load).start()
+        self.load()
+        logger.debug("---SourceDataManager initialized---")
 
     @property
     def datas(self) -> list[SourceData]:
-        self._loadEvent.wait()
         return self._datas
 
     def createData(self, name: str, icon: str, hours: float = 0.0) -> None:
         logger.debug(f"Create source data: {name}")
         uid = uuid.uuid4().hex
-        dataFormat = cfg.defaultFormat
+        dataFormat = cfg.defaultData
         dataFormat["name"] = name
         dataFormat["icon"] = icon
         dataFormat["hours"] = hours
         dataFormat["uid"] = uid
-        path = os.path.join(SOURCE_FILE_PATH, uid + ".json")
+        path = os.path.join(cfg.dataPath, uid + ".json")
         with open(path, 'w') as f:
             json.dump(dataFormat, f, indent=4)
 
@@ -54,17 +55,14 @@ class SourceDataManager(QObject):
         logger.debug(f"Data deleted: {data.filename}")
 
     def load(self) -> None:
+        start = time.time()
         logger.debug("Load source data from file system")
-        self._loadEvent.clear()
-        filenames = os.listdir(SOURCE_FILE_PATH)
+        filenames = os.listdir(cfg.dataPath)
         logger.info(f"Source data total quantity: {len(filenames)}")
-        for filename in filenames:
-            path = os.path.join(SOURCE_FILE_PATH, filename)
-            data = SourceData(path, self)
-            self._datas.append(data)
-            self.dataToPath[data] = path
-            self.sourceDataCreated.emit(data)
-        self._loadEvent.set()
+        paths = [os.path.join(cfg.dataPath, filename) for filename in filenames]
+        with ThreadPoolExecutor() as executor:
+            executor.map(self.__load, paths)
+        logger.info(f"Load source data time: {time.time() - start}")
         logger.debug("Source data loaded from file system")
 
     def reload(self) -> None:
@@ -72,9 +70,12 @@ class SourceDataManager(QObject):
         self.dataToPath = {}
         self.load()
 
-    # Reserve interface for future use
-    def update(self) -> None:
-        pass
+    def __load(self, path: str) -> None:
+        data = SourceData(path, self)
+        with self._loadLock:
+            self._datas.append(data)
+            self.dataToPath[data] = path
+        self.sourceDataCreated.emit(data)
 
     sourceDataCreated = pyqtSignal(SourceData)
     sourceDataDeleted = pyqtSignal(SourceData)
