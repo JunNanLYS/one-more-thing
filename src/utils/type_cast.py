@@ -2,6 +2,8 @@ from os.path import isfile, isdir
 
 from qfluentwidgets import FluentIcon
 
+from src.py_qobject import PyQDict, PyQList
+
 
 def isFluentIconStr(s: str) -> bool:
     if isfile(s) or isdir(s):
@@ -21,6 +23,33 @@ def strToFluentIcon(s: str) -> FluentIcon:
 def fluentIconToStr(icon: FluentIcon) -> str:
     name = icon.name
     return f"F-{name}"
+
+
+def pyQDictToDict(_dict: PyQDict) -> dict:
+    res = _dict.dict
+    for k, v in res.items():
+        if isinstance(v, PyQDict):
+            v = pyQDictToDict(v)
+            res[k] = v
+        elif isinstance(v, PyQList):
+            v = pyQListToList(v)
+            res[k] = v
+    return res
+
+
+def pyQListToList(_list: PyQList) -> list:
+    res = _list.list
+    i = 0
+    while i < len(res):
+        v = res[i]
+        if isinstance(v, PyQDict):
+            v = pyQDictToDict(v)
+            res[i] = v
+        elif isinstance(v, PyQList):
+            v = pyQListToList(v)
+            res[i] = v
+        i += 1
+    return res
 
 
 if __name__ == '__main__':
