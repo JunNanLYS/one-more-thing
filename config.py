@@ -1,16 +1,25 @@
 import os
+from src.py_qobject import PyQDict, PyQList
 
 __version__ = "0.0.1"
 __abspath__ = os.path.abspath(os.path.dirname(__file__))
 __project__ = "one-more-thing"
 
-defaultData = {
-    "name": "No name",
-    "icon": "F-CAR",
-    "hours": 0.0,
-    "uid": "",
-    "subItems": []
-}
+
+def getDefaultData():
+    _list = PyQList()
+    defaultData = {
+        "name": "No name",
+        "icon": "F-CAR",
+        "hours": 0.0,
+        "uid": "",
+        "subItems": _list
+    }
+    res = PyQDict()
+    res.replaceDict(defaultData)
+    _list.valueChanged.connect(res.valueChanged)
+    return res
+
 
 # path
 logPath = r"./logs"
