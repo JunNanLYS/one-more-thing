@@ -1,5 +1,4 @@
 import sys
-import sys
 import time
 
 from PyQt6.QtWidgets import QApplication
@@ -23,7 +22,7 @@ if __name__ == '__main__':
     oneMoreThing.move(int(x), int(y))
     oneMoreThing.show()
     logger.debug("---Application Initialized---")
-    logger.info(f"Start time: {time.time() - start}")
+    logger.info(f"Application Start time: {time.time() - start}")
     app.exec()
     logger.debug("---Application exiting---\n")
     sys.exit()
