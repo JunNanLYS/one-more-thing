@@ -4,20 +4,29 @@ from datetime import datetime
 
 import config as cfg
 
-time_ = datetime.now().strftime("%Y-%m-%d")
-prefix = cfg.logPath
-filename = os.path.join(prefix, f"{time_}.log")
+if cfg.cfgDS.get(cfg.cfgDS.logOutput):
+    time_ = datetime.now().strftime("%Y-%m-%d")
+    prefix = cfg.logPath
+    filename = os.path.join(prefix, f"{time_}.log")
 
-# logging config
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='[%(levelname)s] | %(name)s | %(asctime)s | %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
-    handlers=[
-        logging.FileHandler(filename),
-        logging.StreamHandler()  # 添加一个StreamHandler来输出到终端
-    ]
-)
+    strToLevel = {
+        "DEBUG": logging.DEBUG,
+        "INFO": logging.INFO,
+        "WARNING": logging.WARNING,
+        "ERROR": logging.ERROR,
+        "CRITICAL": logging.CRITICAL
+    }
+    level = strToLevel[cfg.cfgDS.get(cfg.cfgDS.logLevel)]
+    # logging config
+    logging.basicConfig(
+        level=level,
+        format='[%(levelname)s] | %(name)s | %(asctime)s | %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        handlers=[
+            logging.FileHandler(filename),
+            logging.StreamHandler()  # 添加一个StreamHandler来输出到终端
+        ]
+    )
 
 logger = logging.getLogger("one-more-thing")
 
