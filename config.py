@@ -1,5 +1,6 @@
 import os
 from src.py_qobject import PyQDict, PyQList
+from qfluentwidgets import QConfig, ConfigItem
 
 __version__ = "0.0.1"
 __abspath__ = os.path.abspath(os.path.dirname(__file__))
@@ -22,8 +23,9 @@ def getDefaultData():
 
 
 # path
-logPath = r"./logs"
+configPath = r"./config.json"
 dataPath = r"./data"
+logPath = r"./logs"
 resourcePath = r"./resources"
 
 # current working directory
@@ -41,3 +43,15 @@ if not os.path.exists(logPath):
     os.makedirs(logPath)
 if not os.path.exists(resourcePath):
     raise FileNotFoundError(f"Resource path {resourcePath} not found")
+
+
+class Config(QConfig):
+    """Config of application"""
+    logOutput = ConfigItem("log", "output", False)
+    logLevel = ConfigItem("log", "level", "DEBUG")
+    logPath = ConfigItem("log", "path", logPath)
+
+
+# config data storge
+cfgDS = Config()
+cfgDS.load(configPath)
