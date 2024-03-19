@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import QApplication
 
 from log import logger
 from src.py_qobject import PyQDict, PyQList, PyQObjectBase
-from src.utils.type_cast import pyQDictToDict
+from src.utils.type_cast import pyQDictToDictCopy
 
 
 class WorkerThread(QThread):
@@ -30,7 +30,7 @@ class FileBase(QObject):
         super().__init__(parent)
 
 
-class JsonDataStorge(PyQObjectBase):
+class JsonDataStorage(PyQObjectBase):
     def __init__(self, path: str, parent=None):
         super().__init__(parent)
         self._loaded = False
@@ -63,7 +63,7 @@ class JsonDataStorge(PyQObjectBase):
         self._workerThread.start()
 
     def _dump(self) -> None:
-        _dict = pyQDictToDict(self._dict)
+        _dict = pyQDictToDictCopy(self._dict)
         with open(self.path, 'w') as f:
             json.dump(_dict, f, indent=4)
         logger.debug(f"Dumped data to {os.path.basename(self.path)}")
@@ -120,7 +120,7 @@ class JsonDataStorge(PyQObjectBase):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     _path = r"F:\one-more-thing\data\0b97bc434c154140b04d46f6ecf15d6f.json"
-    storge = JsonDataStorge(_path)
-    storge.load()
-    storge.dict["name"] = "li si"
+    storage = JsonDataStorage(_path)
+    storage.load()
+    storage.dict["name"] = "li si"
     sys.exit(app.exec())
