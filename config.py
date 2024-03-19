@@ -1,6 +1,9 @@
 import os
+
+from qfluentwidgets import (QConfig, ConfigItem, OptionsConfigItem, OptionsValidator,
+                            qconfig)
+
 from src.py_qobject import PyQDict, PyQList
-from qfluentwidgets import QConfig, ConfigItem
 
 __version__ = "0.0.1"
 __abspath__ = os.path.abspath(os.path.dirname(__file__))
@@ -47,11 +50,19 @@ if not os.path.exists(resourcePath):
 
 class Config(QConfig):
     """Config of application"""
-    logOutput = ConfigItem("log", "output", False)
-    logLevel = ConfigItem("log", "level", "DEBUG")
+    outputLog = ConfigItem("log", "output", False)
+    logLevel = OptionsConfigItem("log", "level", "DEBUG", OptionsValidator([
+        "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
+    ]))
     logPath = ConfigItem("log", "path", logPath)
+
+    clockBackgroundImage = ConfigItem("counterPage", "backgroundImage",
+                                      os.path.join(resourcePath, "images", "background", "3"))
 
 
 # config data storge
 cfgDS = Config()
-cfgDS.load(configPath)
+qconfig.load(configPath, cfgDS)
+if not os.path.exists(configPath):
+    cfgDS.save()
+cfgDS.set(cfgDS.outputLog, False)
