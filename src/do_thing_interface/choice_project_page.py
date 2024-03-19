@@ -26,9 +26,12 @@ class ProjectCard(ElevatedCardWidget):
         self.__initWidget()
 
     def resetText(self):
+        def getTotalTime(_dict: PyQDict):
+            return _dict["hours"] + sum([getTotalTime(d) for d in _dict.get("subItems", PyQList())])
+
         self.iconWidget.setIcon(self._dict["icon"])
         self.name.setText(self._dict["name"])
-        self.timeBt.setText(f"{self._dict['hours']} H")
+        self.timeBt.setText(f"{getTotalTime(self._dict)} H")
 
     def __connectSignalToSlot(self):
         self._dict.valueChanged.connect(self.resetText)
@@ -68,7 +71,6 @@ class ProjectPage(SmoothScrollArea):
         self.view = QWidget(self)
         self.view.setObjectName("ScrollAreaWidget")
         self.flowLayout = FlowLayout(self.view)
-        self.setWidget(self.view)
         self._list = _list
         self._map: dict[PyQDict, ProjectCard] = {}
 
@@ -98,45 +100,17 @@ class ProjectPage(SmoothScrollArea):
         self._map.pop(obj)
         w.deleteLater()
 
-    def resizeEvent(self, event) -> None:
-        super().resizeEvent(event)
-        self.updateViewGeometry()
-
-    def updateViewGeometry(self):
-        width, sliderWidth = self.width(), 10
-        hSpacing, vSpacing = self.flowLayout.horizontalSpacing(), self.flowLayout.verticalSpacing()
-        oneLine = (width - sliderWidth) // (CARD_WIDTH + hSpacing)
-        if oneLine == 0:
-            return
-        number = len(self._list)
-        row = number // oneLine
-        if number % oneLine:
-            row += 1
-        height = row * (CARD_HEIGHT + vSpacing)
-        self.view.setGeometry(0, 0, width - sliderWidth, height + vSpacing)
-
     def _setQss(self):
-        self.setStyleSheet(
-            """
-            ProjectPage {
-                border: none;
-                background-color: #f7f9fc;
-            }
-            """
-        )
-        self.view.setStyleSheet(
-            """
-            #ScrollAreaWidget {
-                background-color: #f7f9fc;
-            }
-            """
-        )
+        self.setStyleSheet("""QScrollArea{background: transparent; border: none}""")
+        self.view.setStyleSheet("""QWidget {background: transparent;}""")
 
     def __connectSignalToSlot(self):
         self._list.elementRemoved.connect(self.removeWidget)
         self._list.elementAppended.connect(self.addWidget)
 
     def __initWidget(self):
+        self.setWidget(self.view)
+        self.setWidgetResizable(True)
         for d in self._list:
             self.addWidget(d)
         self.__initLayout()
@@ -160,7 +134,7 @@ class ChoiceProjectPage(QWidget):
         self.vLayout = QVBoxLayout(self)
         self._dict: dict[str, ProjectPage] = {}
         self._rootPyQList = PyQList()
-        self._rootPyQList.replaceList([d.storge.dict for d in SDManager.datas])
+        self._rootPyQList.replaceList([d.storage.dict for d in SDManager.datas])
 
         self.__initWidget()
         self.addPage("root", "Main", self._rootPyQList)
@@ -183,10 +157,10 @@ class ChoiceProjectPage(QWidget):
         if routeKey not in self._dict:
             logger.error(f"Page {routeKey} not exists")
             return
-        page = self._dict[routeKey]
+        page = self._dict.pop(routeKey)
         self.view.removeWidget(page)
-        self._dict.pop(routeKey)
         page.deleteLater()
+        del page
         logger.debug(f"Page {routeKey} removed")
 
     def setCurrentPage(self, index: int):
@@ -196,10 +170,11 @@ class ChoiceProjectPage(QWidget):
         deleteKeys = routeKeys[index + 1:]
         for key in deleteKeys:
             self.removePage(key)
+        del deleteKeys
 
     def __connectSignalToSlot(self):
         self.breadcrumb.currentIndexChanged.connect(self.setCurrentPage)
-        SDManager.dataRemoved.connect(lambda data: self._rootPyQList.remove(data.storge.dict))
+        SDManager.dataRemoved.connect(lambda data: self._rootPyQList.remove(data.storage.dict))
 
     def __initWidget(self):
         font = self.breadcrumb.font()
@@ -212,8 +187,8 @@ class ChoiceProjectPage(QWidget):
     def __initLayout(self):
         self.vLayout.addWidget(self.breadcrumb)
         self.vLayout.addWidget(self.view)
-        self.vLayout.setContentsMargins(10, 10, 10, 10)
-        self.vLayout.setSpacing(10)
+        self.vLayout.setContentsMargins(0, 0, 0, 0)
+        self.vLayout.setSpacing(0)
         self.vLayout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
 
     timeBtClicked = pyqtSignal(PyQDict)
@@ -223,7 +198,7 @@ if __name__ == '__main__':
     from PyQt6.QtWidgets import QApplication
 
     app = QApplication([])
-    w = ChoiceProjectPage()
-    w.resize(800, 600)
-    w.show()
+    _w = ChoiceProjectPage()
+    _w.resize(800, 600)
+    _w.show()
     app.exec()

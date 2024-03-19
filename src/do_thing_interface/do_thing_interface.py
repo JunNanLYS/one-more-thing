@@ -3,7 +3,7 @@ import time
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QFrame, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy)
 from qfluentwidgets import (SubtitleLabel, SegmentedToggleToolWidget, FluentIcon,
-                            PopUpAniStackedWidget, ToolButton, SwitchButton)
+                            PopUpAniStackedWidget, ToolButton, SwitchButton, TitleLabel)
 
 from log import logger
 from src.do_thing_interface.choice_project_page import ChoiceProjectPage
@@ -17,72 +17,44 @@ class DoThingInterface(QFrame):
         start = time.time()
 
         self.vLayout = QVBoxLayout(self)
-        self.titleLb = SubtitleLabel("Do Thing", self)
-        self.pivot = SegmentedToggleToolWidget(self)
+        self.titleLb = TitleLabel("Do Thing", self)
         self.view = PopUpAniStackedWidget(self)
         self.choicePage = ChoiceProjectPage(self)
         self.counterPage = CounterPage(self)
-        self.countDownBt = SwitchButton(self)
-        self.fullScreenBt = ToolButton(FluentIcon.FULL_SCREEN, self)
 
         self.__initWidget()
         logger.info(f"DoThingInterface Initialization time: {time.time() - start}")
         logger.debug("---DoThingInterface initialized---")
 
     # 占位用的槽函数
-    def tempSlot(self, _dict):
+    def setCounterItem(self, _dict):
         self.setCurrentIndex(1)
-        self.pivot.setCurrentItem("time")
+        self.counterPage.setDict(_dict)
 
     def setCurrentIndex(self, index: int) -> None:
         if index == 0:
-            self.fullScreenBt.hide()
-            self.countDownBt.hide()
             self.view.setCurrentIndex(0)
         elif index == 1:
-            self.fullScreenBt.show()
-            self.countDownBt.show()
             self.view.setCurrentIndex(1)
-        else:
-            raise ValueError("Index out of range")
 
     def __connectSignalToSlot(self) -> None:
-        self.choicePage.timeBtClicked.connect(self.tempSlot)
-        self.fullScreenBt.clicked.connect(self.counterPage.fullScreen)
-        self.countDownBt.checkedChanged.connect(self.counterPage.setCountDown)
-        self.counterPage.modeChanged.connect(lambda mode: self.countDownBt.setEnabled(mode == "stop"))
+        self.choicePage.timeBtClicked.connect(self.setCounterItem)
+        self.counterPage.backBt.clicked.connect(lambda: self.setCurrentIndex(0))
 
     def __initWidget(self) -> None:
         self.setObjectName("DoThingInterface")
-
-        self.titleLb.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
-
+        # 获取字体像素大小
+        rect = self.titleLb.fontMetrics().boundingRect(self.titleLb.text())
+        self.titleLb.setFixedSize(rect.width() + 10, rect.height())
         self.view.addWidget(self.choicePage, 0, -200)
         self.view.addWidget(self.counterPage, 0, 200)
-
-        self.pivot.addItem("edit", FluentIcon.DATE_TIME, onClick=lambda: self.setCurrentIndex(0))
-        self.pivot.addItem("time", FluentIcon.DATE_TIME, onClick=lambda: self.setCurrentIndex(1))
-        self.pivot.setCurrentItem("edit")
-        self.pivot.setFixedSize(self.pivot.size())
-
-        self.countDownBt.setOffText("count up")
-        self.countDownBt.setOnText("count down")
-        self.fullScreenBt.hide()
-        self.countDownBt.hide()
 
         self.__initLayout()
         self.__connectSignalToSlot()
 
     def __initLayout(self) -> None:
-        toolLayout = QHBoxLayout()
-        toolLayout.addWidget(self.pivot)
-        toolLayout.addItem(QSpacerItem(0, 0, hPolicy=QSizePolicy.Policy.Expanding))
-        toolLayout.addWidget(self.countDownBt)
-        toolLayout.addWidget(self.fullScreenBt)
-
-        self.vLayout.addWidget(self.titleLb)
-        self.vLayout.addLayout(toolLayout)
+        self.titleLb.move(36, 30)
         self.vLayout.addWidget(self.view)
-        self.vLayout.setContentsMargins(10, 10, 10, 10)
+        self.vLayout.setContentsMargins(36, 90, 36, 10)
         self.vLayout.setSpacing(10)
         self.vLayout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)

@@ -1,12 +1,15 @@
 import time
+from typing import Optional
 
 from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QPaintEvent, QPainter, QImage
-from PyQt6.QtWidgets import QVBoxLayout, QWidget, QHBoxLayout, QFrame
-from qfluentwidgets import ToolButton, FluentIcon
+from PyQt6.QtWidgets import QVBoxLayout, QWidget, QHBoxLayout, QFrame, QSpacerItem, QSizePolicy
+from qfluentwidgets import ToolButton, FluentIcon, SwitchButton
 from qframelesswindow import TitleBarBase
 
+import config as cfg
 from log import logger
+from src.py_qobject import PyQDict
 from src.widgets import (TimePicker, getNextHour, getNextMinute, getNextSecond)
 
 
@@ -69,6 +72,7 @@ class TimeClock(QWidget):
         self._layout = QVBoxLayout(self)
         self._timer = None
         self.timePicker = TimePicker(self)
+        self.finished.connect(lambda s: logger.info(f"Total seconds: {s}"))
 
         self.__initWidget()
 
@@ -205,25 +209,30 @@ class CounterPage(QWidget):
     class FullScreenWindow(MyWindow):
         def __init__(self, timeClock: TimeClock, callback):
             super().__init__()
-            timeClock.setParent(self)
-            timeClock.finished.connect(callback)
+            self.timeClock = timeClock
+            self.timeClock.setParent(self)
             self.callback = callback
             self.vLayout = QVBoxLayout(self)
-            self.vLayout.addWidget(timeClock)
+            self.vLayout.addWidget(self.timeClock)
 
             self.titleBar.closeBtn.clicked.disconnect(self.window().close)
             self.titleBar.closeBtn.clicked.connect(callback)
             self.showMaximized()
-            self.setBackgroundImage(r"F:\one-more-thing\resources\images\background\3.png")
+            cfgDS = cfg.cfgDS
+            self.setBackgroundImage(cfgDS.get(cfgDS.clockBackgroundImage))
 
     def __init__(self, parent=None):
         super().__init__(parent)
         start = time.time()
         logger.debug("---CounterPage initializing---")
         self._mode = "stop"
+        self._dict: Optional[PyQDict] = None
         self.vLayout = QVBoxLayout(self)
         self.timeClock = TimeClock(self)
         self.fullScreenWindow = None
+        self.backBt = ToolButton(FluentIcon.RETURN, self)
+        self.countDownBt = SwitchButton(self)
+        self.fullScreenBt = ToolButton(FluentIcon.FULL_SCREEN, self)
         self.pauseBt = ToolButton(FluentIcon.PAUSE, self)
         self.startBt = ToolButton(FluentIcon.PLAY, self)
         self.stopBt = ToolButton(FluentIcon.ACCEPT, self)
@@ -232,6 +241,8 @@ class CounterPage(QWidget):
         logger.debug("---CounterPage initialized---")
 
     def backToWindow(self) -> None:
+        if self.fullScreenWindow is None:
+            return
         self.fullScreenWindow.hide()
         self.timeClock.setParent(self)
         self.__initLayout()
@@ -239,7 +250,6 @@ class CounterPage(QWidget):
 
         self.fullScreenWindow.deleteLater()
         self.fullScreenWindow = None
-        self.timeClock.finished.disconnect(self.backToWindow)
 
     def fullScreen(self) -> None:
         self.fullScreenWindow = self.FullScreenWindow(self.timeClock, self.backToWindow)
@@ -251,6 +261,9 @@ class CounterPage(QWidget):
 
     def setCountDown(self, countDown: bool) -> None:
         self.timeClock.setCountDown(countDown)
+
+    def setDict(self, _dict: PyQDict) -> None:
+        self._dict = _dict
 
     def setMode(self, mode: str) -> None:
         if mode == "start":
@@ -265,10 +278,23 @@ class CounterPage(QWidget):
             self.startBt.show()
             self.pauseBt.hide()
             self.stopBt.hide()
+        isStopped = mode == "stop"
+        self.countDownBt.setEnabled(isStopped)
+        self.backBt.setEnabled(isStopped)
         self._mode = mode
         self.modeChanged.emit(mode)
 
+    def updateData(self, seconds: int) -> None:
+        if self._dict is None:
+            logger.error("No data")
+        res = round(seconds / 3600, 2)
+        self._dict["hours"] += res
+        logger.info(f"name: {self._dict['name']}, hours: {self._dict['hours']}")
+
     def __connectSignalToSlot(self) -> None:
+        self.fullScreenBt.clicked.connect(self.fullScreen)
+        self.countDownBt.checkedChanged.connect(self.setCountDown)
+
         self.startBt.clicked.connect(self.timeClock.start)
         self.startBt.clicked.connect(lambda: self.setMode("start"))
         self.pauseBt.clicked.connect(self.timeClock.pause)
@@ -277,22 +303,37 @@ class CounterPage(QWidget):
         self.stopBt.clicked.connect(lambda: self.setMode("stop"))
 
         self.timeClock.finished.connect(lambda: self.setMode("stop"))
-        self.timeClock.finished.connect(lambda x: logger.info(f"Total seconds: {x}"))
+        self.timeClock.finished.connect(self.backToWindow)
+        self.timeClock.finished.connect(self.updateData)
 
     def __initWidget(self) -> None:
         self.setMode("stop")
+        self.fullScreenBt.setToolTip("Full Screen")
+        self.countDownBt.setOffText("count up")
+        self.countDownBt.setOnText("count down")
         self.__initLayout()
         self.__connectSignalToSlot()
 
     def __initLayout(self) -> None:
-        bottomLayout = QHBoxLayout()
-        bottomLayout.addWidget(self.stopBt)
-        bottomLayout.addWidget(self.pauseBt)
-        bottomLayout.addWidget(self.startBt)
+        topLayout = QHBoxLayout()
+        topLayout.addWidget(self.backBt)
+        topLayout.addItem(QSpacerItem(0, 0, hPolicy=QSizePolicy.Policy.Expanding))
+        topLayout.addWidget(self.countDownBt)
+        topLayout.addWidget(self.fullScreenBt)
 
+        controllerLayout = QHBoxLayout()
+        controllerLayout.addWidget(self.stopBt)
+        controllerLayout.addWidget(self.pauseBt)
+        controllerLayout.addWidget(self.startBt)
+
+        bottomLayout = QHBoxLayout()
+
+        self.vLayout.addLayout(topLayout)
         self.vLayout.addWidget(self.timeClock)
-        self.vLayout.addLayout(bottomLayout)
+        self.vLayout.addLayout(controllerLayout)
         self.vLayout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
+        self.vLayout.setContentsMargins(0, 0, 0, 0)
+        self.vLayout.setSpacing(10)
 
     modeChanged = pyqtSignal(str)  # Signal emit mode
 
