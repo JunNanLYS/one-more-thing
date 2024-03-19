@@ -4,9 +4,9 @@ from datetime import datetime
 
 import config as cfg
 
-if cfg.cfgDS.get(cfg.cfgDS.logOutput):
+if cfg.cfgDS.get(cfg.cfgDS.outputLog):
     time_ = datetime.now().strftime("%Y-%m-%d")
-    prefix = cfg.logPath
+    prefix = cfg.cfgDS.get(cfg.cfgDS.logPath)
     filename = os.path.join(prefix, f"{time_}.log")
 
     strToLevel = {
