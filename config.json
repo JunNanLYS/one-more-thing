@@ -1,8 +1,11 @@
 {
+    "counterPage": {
+        "backgroundImage": "./resources\\images\\background\\3"
+    },
     "log": {
-        "level": "INFO",
-        "output": true,
-        "path": "./logs"
+        "level": "DEBUG",
+        "path": "./logs",
+        "output": false
     },
     "QFluentWidgets": {
         "ThemeColor": "#ff009faa",
