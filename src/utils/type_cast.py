@@ -37,6 +37,20 @@ def pyQDictToDict(_dict: PyQDict) -> dict:
     return res
 
 
+def pyQDictToDictCopy(_dict: PyQDict) -> dict:
+    res = dict()
+    for k, v in _dict.items():
+        if isinstance(v, PyQDict):
+            v = pyQDictToDictCopy(v)
+            res[k] = v
+        elif isinstance(v, PyQList):
+            v = pyQListToListCopy(v)
+            res[k] = v
+        else:
+            res[k] = v
+    return res
+
+
 def pyQListToList(_list: PyQList) -> list:
     res = _list.list
     i = 0
@@ -49,6 +63,20 @@ def pyQListToList(_list: PyQList) -> list:
             v = pyQListToList(v)
             res[i] = v
         i += 1
+    return res
+
+
+def pyQListToListCopy(_list: PyQList) -> list:
+    res = list()
+    for v in _list:
+        if isinstance(v, PyQDict):
+            v = pyQDictToDictCopy(v)
+            res.append(v)
+        elif isinstance(v, PyQList):
+            v = pyQListToListCopy(v)
+            res.append(v)
+        else:
+            res.append(v)
     return res
 
 
