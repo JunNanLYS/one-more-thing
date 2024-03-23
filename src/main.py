@@ -1,11 +1,15 @@
 import sys
 import time
 
-from PyQt6.QtWidgets import QApplication, QWidget
+from PyQt6.QtWidgets import QApplication
 from qfluentwidgets import (MSFluentWindow, NavigationItemPosition, FluentIcon)
 
+from src.widgets import ProjectIcon
 from src.do_thing_interface.do_thing_interface import DoThingInterface
 from src.setting_interface.setting_interface import SettingInterface
+from src.to_do_list_interface.to_do_list_interface import ToDoListInterface
+from src.manager_interface.manager_interface import ManagerInterface
+from src.chart_interface.chart_interface import ChartInterface
 
 
 class View(MSFluentWindow):
@@ -13,6 +17,9 @@ class View(MSFluentWindow):
         super().__init__()
         self.doThingInterface = DoThingInterface(self)
         self.settingInterface = SettingInterface(self)
+        self.toDoListInterface = ToDoListInterface(self)
+        self.managerInterface = ManagerInterface(self)
+        self.chartInterface = ChartInterface(self)
         self.__initWidget()
         self.__initNavigation()
 
@@ -24,8 +31,27 @@ class View(MSFluentWindow):
             position=NavigationItemPosition.TOP,
         )
 
-        settingW = QWidget()
-        settingW.setObjectName("Setting")
+        self.addSubInterface(
+            self.toDoListInterface,
+            ProjectIcon.TO_DO_LIST,
+            "To do list",
+            position=NavigationItemPosition.TOP,
+        )
+
+        self.addSubInterface(
+            self.managerInterface,
+            FluentIcon.FOLDER,
+            "Manage",
+            position=NavigationItemPosition.SCROLL
+        )
+
+        self.addSubInterface(
+            self.chartInterface,
+            FluentIcon.MARKET,
+            "Chart",
+            position=NavigationItemPosition.SCROLL,
+        )
+
         self.addSubInterface(
             self.settingInterface,
             FluentIcon.SETTING,
