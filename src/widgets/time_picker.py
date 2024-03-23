@@ -2,12 +2,12 @@ from collections import deque
 from typing import Callable, Deque
 
 from PyQt6.QtCore import (pyqtProperty, pyqtSignal, QPropertyAnimation,
-                          QPoint, QEasingCurve, QTimer, Qt, QSize)
+                          QPoint, QEasingCurve, Qt, QSize)
 from PyQt6.QtGui import QWheelEvent
-from PyQt6.QtWidgets import QLabel, QWidget, QGridLayout, QHBoxLayout
-from qfluentwidgets import TitleLabel
+from PyQt6.QtWidgets import QLabel, QWidget, QHBoxLayout
+from qfluentwidgets import TitleLabel, qconfig, Theme, isDarkTheme
 
-from src.py_qobject import PyQList
+from log import logger
 
 
 class PickerItem(QLabel):
@@ -26,7 +26,9 @@ class PickerItem(QLabel):
         self.setFixedSize(100, 100)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self.setStyleSheet(f"color: rgba(0, 0, 0, {self._textOpacity});")
+        self.updateUi()
+        qconfig.themeChangedFinished.connect(self.themeModeChanged)
+        self.themeModeChanged.connect(self.updateUi)
 
     def getMetricsHeight(self):
         return self.fontMetrics().boundingRect(self.text()).height()
@@ -41,7 +43,13 @@ class PickerItem(QLabel):
     @textOpacity.setter
     def textOpacity(self, value: float):
         self._textOpacity = value
-        self.setStyleSheet(f"color: rgba(0, 0, 0, {value});")
+        self.updateUi()
+
+    def updateUi(self):
+        if isDarkTheme():
+            self.setStyleSheet(f"color: rgba(255, 255, 255, {self._textOpacity});")
+        else:
+            self.setStyleSheet(f"color: rgba(0, 0, 0, {self._textOpacity});")
 
     @pyqtProperty(int)
     def fontSize(self) -> int:
@@ -82,6 +90,8 @@ class PickerItem(QLabel):
             self.opacityAnimation.start()
         else:
             self.moveAnimation.start()
+
+    themeModeChanged = pyqtSignal()
 
 
 class Picker(QWidget):
