@@ -1,7 +1,7 @@
 # one-more-thing
 
 ## How to use
-`Python >= 3.10`
+`Python >= 3.11`
 1. Clone the repository
     ```git
     git clone git@github.com:JunNanLYS/one-more-thing.git
