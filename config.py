@@ -1,4 +1,5 @@
 import os
+import uuid
 
 from qfluentwidgets import (QConfig, ConfigItem, OptionsConfigItem, OptionsValidator,
                             qconfig)
@@ -16,7 +17,7 @@ def getDefaultData() -> PyQDict:
         "name": "No name",
         "icon": "No icon",
         "hours": 0.0,
-        "uid": "",
+        "uid": uuid.uuid4().hex,
         "subItems": _list
     }
     res = PyQDict()
