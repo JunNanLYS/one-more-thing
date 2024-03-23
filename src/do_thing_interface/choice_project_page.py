@@ -1,6 +1,7 @@
 import time
+from threading import Thread
 
-from PyQt6.QtCore import Qt, QEasingCurve, pyqtSignal
+from PyQt6.QtCore import Qt, QEasingCurve, pyqtSignal, QThread
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout
 from qfluentwidgets import (ElevatedCardWidget, SubtitleLabel, SmoothScrollArea,
                             IconWidget, TransparentPushButton, FlowLayout,
@@ -34,7 +35,8 @@ class ProjectCard(ElevatedCardWidget):
         self.timeBt.setText(f"{getTotalTime(self._dict)} H")
 
     def __connectSignalToSlot(self):
-        self._dict.valueChanged.connect(self.resetText)
+        self._dict.valueChanged.connect(self.onValueChanged)
+        self.onValueChanged.connect(self.resetText)
 
     def __initWidget(self):
         self.resetText()
@@ -63,6 +65,8 @@ class ProjectCard(ElevatedCardWidget):
         self.vLayout.setSpacing(10)
         self.vLayout.setContentsMargins(10, 10, 10, 10)
         self.vLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+    onValueChanged = pyqtSignal()
 
 
 class ProjectPage(SmoothScrollArea):
@@ -105,21 +109,45 @@ class ProjectPage(SmoothScrollArea):
         self.view.setStyleSheet("""QWidget {background: transparent;}""")
 
     def __connectSignalToSlot(self):
-        self._list.elementRemoved.connect(self.removeWidget)
-        self._list.elementAppended.connect(self.addWidget)
+        self._list.elementRemoved.connect(self.onRemoveWidget)
+        self._list.elementAppended.connect(self.onAddWidget)
+        self.onAddWidget.connect(self.addWidget)
+        self.onRemoveWidget.connect(self.removeWidget)
 
     def __initWidget(self):
         self.setWidget(self.view)
         self.setWidgetResizable(True)
-        for d in self._list:
-            self.addWidget(d)
         self.__initLayout()
         self.__connectSignalToSlot()
+        self.__updateUI()
 
     def __initLayout(self):
         self.flowLayout.setHorizontalSpacing(10)
         self.flowLayout.setVerticalSpacing(10)
 
+    def __updateUI(self):
+        if len(self._list) <= 100:
+            for d in self._list:
+                self.addWidget(d)
+        else:
+            class Worker(QThread):
+                def __init__(self, _list, signal):
+                    super().__init__(None)
+                    self.list = _list
+                    self.signal = signal
+
+                def run(self) -> None:
+                    for _dict in self.list:
+                        self.signal.emit(_dict)
+                        time.sleep(0.05)
+                    self.finished.emit()
+
+            self.worker = Worker(self._list, self.onAddWidget)
+            self.worker.finished.connect(self.worker.deleteLater)
+            self.worker.start()
+
+    onAddWidget = pyqtSignal(object)
+    onRemoveWidget = pyqtSignal(object)
     cardClicked = pyqtSignal(str, str, PyQList)
     timeBtClicked = pyqtSignal(PyQDict)
 
@@ -175,6 +203,7 @@ class ChoiceProjectPage(QWidget):
     def __connectSignalToSlot(self):
         self.breadcrumb.currentIndexChanged.connect(self.setCurrentPage)
         SDManager.dataRemoved.connect(lambda data: self._rootPyQList.remove(data.storage.dict))
+        SDManager.dataAdded.connect(lambda data: self._rootPyQList.append(data.storage.dict))
 
     def __initWidget(self):
         font = self.breadcrumb.font()
