@@ -1,6 +1,7 @@
 import sys
 import time
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication
 
 import config as cfg
@@ -13,6 +14,9 @@ if __name__ == '__main__':
     screenScale = getScreenScale()
     try:
         app = QApplication(sys.argv)
+        if cfg.cfgDS.useOpenGL.value:
+            app.setAttribute(Qt.ApplicationAttribute.AA_UseOpenGLES)
+            logger.info("Enable hardware acceleration")
         logger.info(f"Version: {cfg.__version__}")
         logger.info(f"Screen size: {screenWidth}*{screenHeight}, scale: {screenScale}")
         logger.debug("---Application initializing---")
@@ -32,4 +36,3 @@ if __name__ == '__main__':
         cfg.cfgDS.save()
     finally:
         sys.exit()
-
