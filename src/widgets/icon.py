@@ -2,8 +2,6 @@ from enum import Enum
 
 from qfluentwidgets import Theme, getIconColor, FluentIconBase
 
-import config as cfg
-
 
 class OMThingIcon(FluentIconBase, Enum):
 
@@ -12,8 +10,10 @@ class OMThingIcon(FluentIconBase, Enum):
 
 
 class ProjectIcon(FluentIconBase, Enum):
+    TO_DO_LIST = "toDoList"
+
     def path(self, theme=Theme.AUTO) -> str:
-        return ""
+        return f"./resources/images/icons/project/{getIconColor(theme)}/{self.value}.svg"
 
 
 if __name__ == '__main__':
