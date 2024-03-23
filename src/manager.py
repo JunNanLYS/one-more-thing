@@ -22,9 +22,8 @@ class SourceDataManager(QObject):
 
     def addData(self, name: str, icon: str):
         try:
-            uid = uuid.uuid4().hex
             defaultData = cfg.getDefaultData()
-            defaultData["uid"] = uid
+            uid = defaultData["uid"]
             defaultData["name"] = name
             defaultData["icon"] = icon
             defaultData = pyQDictToDict(defaultData)
