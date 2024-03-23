@@ -6,7 +6,7 @@ import config as cfg
 
 if cfg.cfgDS.get(cfg.cfgDS.outputLog):
     time_ = datetime.now().strftime("%Y-%m-%d")
-    prefix = cfg.cfgDS.get(cfg.cfgDS.logPath)
+    prefix = cfg.cfgDS.logPath.value
     filename = os.path.join(prefix, f"{time_}.log")
 
     strToLevel = {
@@ -16,7 +16,7 @@ if cfg.cfgDS.get(cfg.cfgDS.outputLog):
         "ERROR": logging.ERROR,
         "CRITICAL": logging.CRITICAL
     }
-    level = strToLevel[cfg.cfgDS.get(cfg.cfgDS.logLevel)]
+    level = strToLevel[cfg.cfgDS.logLevel.value]
     # logging config
     logging.basicConfig(
         level=level,
