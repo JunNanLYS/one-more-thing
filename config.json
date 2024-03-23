@@ -1,11 +1,19 @@
 {
-    "counterPage": {
-        "backgroundImage": "./resources\\images\\background\\3"
+    "doThing": {
+        "afterFourPomodoro": 15,
+        "backgroundImage": "./resources\\images\\background\\3",
+        "onePomodoroTime": 25,
+        "pomodoroBreak": 5,
+        "usePomodoroTime": false
+    },
+    "personalization": {
+        "language": "English",
+        "OpenGL": false
     },
     "log": {
-        "level": "DEBUG",
+        "level": "INFO",
         "path": "./logs",
-        "output": false
+        "output": true
     },
     "QFluentWidgets": {
         "ThemeColor": "#ff009faa",

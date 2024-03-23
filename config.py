@@ -10,11 +10,11 @@ __abspath__ = os.path.abspath(os.path.dirname(__file__))
 __project__ = "one-more-thing"
 
 
-def getDefaultData():
+def getDefaultData() -> PyQDict:
     _list = PyQList()
     defaultData = {
         "name": "No name",
-        "icon": "F-CAR",
+        "icon": "No icon",
         "hours": 0.0,
         "uid": "",
         "subItems": _list
@@ -50,14 +50,26 @@ if not os.path.exists(resourcePath):
 
 class Config(QConfig):
     """Config of application"""
+    # log group
     outputLog = ConfigItem("log", "output", False)
     logLevel = OptionsConfigItem("log", "level", "DEBUG", OptionsValidator([
         "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
     ]))
     logPath = ConfigItem("log", "path", logPath)
 
-    clockBackgroundImage = ConfigItem("counterPage", "backgroundImage",
+    # do thing
+    clockBackgroundImage = ConfigItem("doThing", "backgroundImage",
                                       os.path.join(resourcePath, "images", "background", "3"))
+    usePomodoroTime = ConfigItem("doThing", "usePomodoroTime", False)
+    onePomodoroTime = OptionsConfigItem("doThing", "onePomodoroTime", 25, OptionsValidator([15, 20, 25, 30]))
+    pomodoroBreak = OptionsConfigItem("doThing", "pomodoroBreak", 5, OptionsValidator([5, 10]))
+    afterFourPomodoro = OptionsConfigItem("doThing", "afterFourPomodoro", 15, OptionsValidator([10, 15, 20, 25, 30]))
+
+    # personalization
+    language = OptionsConfigItem("personalization", "language", "English", OptionsValidator([
+        "English", "简体中文"
+    ]))
+    useOpenGL = ConfigItem("personalization", "OpenGL", False)
 
 
 # config data storge
@@ -65,4 +77,3 @@ cfgDS = Config()
 qconfig.load(configPath, cfgDS)
 if not os.path.exists(configPath):
     cfgDS.save()
-cfgDS.set(cfgDS.outputLog, False)
