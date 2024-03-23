@@ -3,7 +3,7 @@ import os.path
 import sys
 from threading import Event
 
-from PyQt6.QtCore import QObject, pyqtSignal, QThread, QMutex
+from PyQt6.QtCore import QObject, pyqtSignal, QThread, Qt
 from PyQt6.QtWidgets import QApplication
 
 from log import logger
@@ -18,7 +18,6 @@ class WorkerThread(QThread):
 
     def run(self):
         self._callable()
-        self.finished.emit()
 
 
 def getFilename(path: str) -> str:
@@ -37,7 +36,6 @@ class JsonDataStorage(PyQObjectBase):
         self._loadEvent = Event()
         self._workerThread = None
         self._dict = PyQDict()
-        self._dictLock = QMutex()
         self.path = path
         self.valueChanged.connect(self.dump)
 
@@ -57,9 +55,12 @@ class JsonDataStorage(PyQObjectBase):
         return self._loaded
 
     def load(self):
-        assert self._loaded is False
+        if self._loaded:
+            logger.warning("Don't reload data")
+            return
         self._loadEvent.clear()
         self._workerThread = WorkerThread(self._load)
+        self._workerThread.finished.connect(self.__initSignal)
         self._workerThread.start()
 
     def _dump(self) -> None:
@@ -74,7 +75,6 @@ class JsonDataStorage(PyQObjectBase):
             with open(self.path, "r") as f:
                 _dict = json.load(f)
             self._dict = self._dictToPyQDict(_dict)
-            self._dict.valueChanged.connect(self.valueChanged)
             self._loaded = True
             logger.debug(f"Loaded data from {os.path.basename(self.path)}")
         finally:
@@ -90,10 +90,8 @@ class JsonDataStorage(PyQObjectBase):
             cur = res[i]
             if isinstance(cur, dict):
                 res[i] = self._dictToPyQDict(cur)
-                res[i].valueChanged.connect(self.valueChanged)
             elif isinstance(cur, list):
                 res[i] = self._listToPyQList(cur)
-                res[i].valueChanged.connect(self.valueChanged)
             i += 1
         res.blockSignals(False)
         return res
@@ -104,14 +102,28 @@ class JsonDataStorage(PyQObjectBase):
         for k, v in _dict.items():
             if isinstance(v, dict):
                 res[k] = self._dictToPyQDict(v)
-                res[k].valueChanged.connect(self.valueChanged)
             elif isinstance(v, list):
                 res[k] = self._listToPyQList(v)
-                res[k].valueChanged.connect(self.valueChanged)
             else:
                 res[k] = v
         res.blockSignals(False)
         return res
+
+    def __initSignal(self):
+        def DFSConnect(parent: PyQObjectBase, child: PyQObjectBase):
+            child.valueChanged.connect(parent.valueChanged.emit, Qt.ConnectionType.QueuedConnection)
+            child.setParent(parent)
+
+            if isinstance(child, PyQDict):
+                for v in child.values():
+                    if isinstance(v, PyQObjectBase):
+                        DFSConnect(child, v)
+            elif isinstance(child, PyQList):
+                for v in child:
+                    if isinstance(v, PyQObjectBase):
+                        DFSConnect(child, v)
+
+        DFSConnect(self, self._dict)
 
     loaded = pyqtSignal()
     dumped = pyqtSignal()
