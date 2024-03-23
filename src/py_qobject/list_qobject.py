@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 from PyQt6.QtCore import pyqtSignal
 
 from .base import PyQObjectBase
