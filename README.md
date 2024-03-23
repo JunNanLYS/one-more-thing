@@ -24,8 +24,8 @@ unfinished
 ## Features
 - [x] Do thing
 - [x] Count time
-- [] To do list
+- [ ] To do list
 - [x] Manage
-- [] Chart
-- [] Pomodoro time
+- [ ] Chart
+- [ ] Pomodoro time
 ...
