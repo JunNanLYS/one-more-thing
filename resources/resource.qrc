@@ -1,0 +1,14 @@
+<RCC>
+  <qresource prefix="/one-more-thing">
+    <file>images/background/1.png</file>
+    <file>images/background/2.png</file>
+    <file>images/background/3.png</file>
+    <file>images/background/4.png</file>
+    <file>images/background/5.png</file>
+    <file>images/background/6.jpg</file>
+    <file>images/background/7.jpg</file>
+    <file>images/icons/project/black/down.svg</file>
+    <file>images/icons/project/black/right.svg</file>
+    <file>images/icons/project/black/toDoList.svg</file>
+  </qresource>
+</RCC>
