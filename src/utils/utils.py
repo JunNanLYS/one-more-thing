@@ -1,5 +1,5 @@
-from PyQt6.QtCore import QRect, Qt
-from PyQt6.QtWidgets import QLabel
+from PySide6.QtCore import QRect, Qt
+from PySide6.QtWidgets import QLabel
 
 from log import logger
 from src.py_qobject import PyQDict, PyQList

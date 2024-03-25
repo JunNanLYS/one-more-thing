@@ -1,8 +1,8 @@
 import sys
 import time
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QApplication
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication
 
 import config as cfg
 from log import logger

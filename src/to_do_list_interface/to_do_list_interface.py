@@ -1,6 +1,6 @@
-from PyQt6.QtCore import QEasingCurve, Qt
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
-from qfluentwidgets import (TitleLabel, SmoothScrollArea, FlowLayout, SimpleCardWidget,
+from PySide6.QtCore import QEasingCurve, Qt
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
+from qfluentwidgets import (TitleLabel, SmoothScrollArea, SimpleCardWidget,
                             CheckBox, SubtitleLabel, ToolButton, FluentIcon)
 
 from src.utils import getLabelBoundingRect
@@ -61,8 +61,8 @@ class ToDoListInterface(SmoothScrollArea):
         self.setWidget(self.view)
         self.setWidgetResizable(True)
         self.setViewportMargins(0, 80, 0, 20)
-        self.setScrollAnimation(Qt.Orientation.Vertical, 400, QEasingCurve.Type.OutQuint)
-        self.setScrollAnimation(Qt.Orientation.Horizontal, 400, QEasingCurve.Type.OutQuint)
+        self.setScrollAnimation(Qt.Orientation.Vertical, 400, QEasingCurve.OutQuint)
+        self.setScrollAnimation(Qt.Orientation.Horizontal, 400, QEasingCurve.OutQuint)
         self.__initLayout()
         self.__connectSignalToSlot()
 

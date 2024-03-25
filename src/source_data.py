@@ -1,7 +1,7 @@
 import sys
 
-from PyQt6.QtCore import pyqtSignal, QObject
-from PyQt6.QtWidgets import QApplication
+from PySide6.QtCore import Signal, QObject
+from PySide6.QtWidgets import QApplication
 
 from log import logger
 from src.utils.file import JsonDataStorage
@@ -23,8 +23,8 @@ class SourceData(QObject):
     def storage(self) -> JsonDataStorage:
         return self._storage
 
-    dumped = pyqtSignal()
-    loaded = pyqtSignal()
+    dumped = Signal()
+    loaded = Signal()
 
 
 if __name__ == '__main__':

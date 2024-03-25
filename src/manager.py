@@ -1,9 +1,8 @@
 import json
 import os
-import uuid
 from typing import Union
 
-from PyQt6.QtCore import QObject, pyqtSignal
+from PySide6.QtCore import QObject, Signal
 
 import config as cfg
 from log import logger
@@ -62,8 +61,8 @@ class SourceDataManager(QObject):
         self.dataRemoved.emit(data)
         data.deleteLater()
 
-    dataAdded = pyqtSignal(SourceData)
-    dataRemoved = pyqtSignal(SourceData)
+    dataAdded = Signal(SourceData)
+    dataRemoved = Signal(SourceData)
 
 
 SDManager = SourceDataManager()

@@ -3,8 +3,8 @@ import os.path
 import sys
 from threading import Event
 
-from PyQt6.QtCore import QObject, pyqtSignal, QThread, Qt
-from PyQt6.QtWidgets import QApplication
+from PySide6.QtCore import QObject, Signal, QThread, Qt
+from PySide6.QtWidgets import QApplication
 
 from log import logger
 from src.py_qobject import PyQDict, PyQList, PyQObjectBase
@@ -38,6 +38,7 @@ class JsonDataStorage(PyQObjectBase):
         self._dict = PyQDict()
         self.path = path
         self.valueChanged.connect(self.dump)
+        # self.loaded.connect(self.__initSignal)
 
     @property
     def dict(self) -> PyQDict:
@@ -112,7 +113,8 @@ class JsonDataStorage(PyQObjectBase):
     def __initSignal(self):
         def DFSConnect(parent: PyQObjectBase, child: PyQObjectBase):
             child.valueChanged.connect(parent.valueChanged.emit, Qt.ConnectionType.QueuedConnection)
-            child.setParent(parent)
+            if parent is not self:
+                child.setParent(parent)
 
             if isinstance(child, PyQDict):
                 for v in child.values():
@@ -125,8 +127,8 @@ class JsonDataStorage(PyQObjectBase):
 
         DFSConnect(self, self._dict)
 
-    loaded = pyqtSignal()
-    dumped = pyqtSignal()
+    loaded = Signal()
+    dumped = Signal()
 
 
 if __name__ == "__main__":

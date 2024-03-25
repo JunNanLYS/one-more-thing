@@ -1,11 +1,10 @@
 import time
-from threading import Thread
 
-from PyQt6.QtCore import Qt, QEasingCurve, pyqtSignal, QThread
-from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout
+from PySide6.QtCore import Qt, QEasingCurve, Signal, QThread
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QStackedWidget
 from qfluentwidgets import (ElevatedCardWidget, SubtitleLabel, SmoothScrollArea,
                             IconWidget, TransparentPushButton, FlowLayout,
-                            BreadcrumbBar, PopUpAniStackedWidget)
+                            BreadcrumbBar)
 
 from log import logger
 from src.manager import SDManager
@@ -35,8 +34,7 @@ class ProjectCard(ElevatedCardWidget):
         self.timeBt.setText(f"{getTotalTime(self._dict)} H")
 
     def __connectSignalToSlot(self):
-        self._dict.valueChanged.connect(self.onValueChanged)
-        self.onValueChanged.connect(self.resetText)
+        self._dict.valueChanged.connect(self.resetText)
 
     def __initWidget(self):
         self.resetText()
@@ -51,8 +49,8 @@ class ProjectCard(ElevatedCardWidget):
         topLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         topLayout.setSpacing(10)
         topLayout.setContentsMargins(0, 0, 0, 0)
-        topLayout.addWidget(self.iconWidget)
-        topLayout.addWidget(self.name)
+        topLayout.addWidget(self.iconWidget, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        topLayout.addWidget(self.name, 1, Qt.AlignmentFlag.AlignCenter)
 
         bottomLayout = QHBoxLayout()
         bottomLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -66,21 +64,18 @@ class ProjectCard(ElevatedCardWidget):
         self.vLayout.setContentsMargins(10, 10, 10, 10)
         self.vLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-    onValueChanged = pyqtSignal()
-
 
 class ProjectPage(SmoothScrollArea):
     def __init__(self, _list: PyQList, parent=None):
         super().__init__(parent)
         self.view = QWidget(self)
-        self.view.setObjectName("ScrollAreaWidget")
         self.flowLayout = FlowLayout(self.view)
         self._list = _list
         self._map: dict[PyQDict, ProjectCard] = {}
 
         # customize scroll animation
-        self.setScrollAnimation(Qt.Orientation.Vertical, 400, QEasingCurve.Type.OutQuint)
-        self.setScrollAnimation(Qt.Orientation.Horizontal, 400, QEasingCurve.Type.OutQuint)
+        self.setScrollAnimation(Qt.Orientation.Vertical, 400, QEasingCurve.OutQuint)
+        self.setScrollAnimation(Qt.Orientation.Horizontal, 400, QEasingCurve.OutQuint)
 
         self._setQss()
         self.__initWidget()
@@ -99,9 +94,8 @@ class ProjectPage(SmoothScrollArea):
         if not isinstance(obj, PyQDict):
             logger.error(f"Type of accident: {type(obj)}")
             return
-        w = self._map[obj]
+        w = self._map.pop(obj)
         self.flowLayout.removeWidget(w)
-        self._map.pop(obj)
         w.deleteLater()
 
     def _setQss(self):
@@ -109,10 +103,9 @@ class ProjectPage(SmoothScrollArea):
         self.view.setStyleSheet("""QWidget {background: transparent;}""")
 
     def __connectSignalToSlot(self):
-        self._list.elementRemoved.connect(self.onRemoveWidget)
-        self._list.elementAppended.connect(self.onAddWidget)
+        self._list.elementRemoved.connect(self.removeWidget)
+        self._list.elementAppended.connect(self.addWidget)
         self.onAddWidget.connect(self.addWidget)
-        self.onRemoveWidget.connect(self.removeWidget)
 
     def __initWidget(self):
         self.setWidget(self.view)
@@ -146,10 +139,9 @@ class ProjectPage(SmoothScrollArea):
             self.worker.finished.connect(self.worker.deleteLater)
             self.worker.start()
 
-    onAddWidget = pyqtSignal(object)
-    onRemoveWidget = pyqtSignal(object)
-    cardClicked = pyqtSignal(str, str, PyQList)
-    timeBtClicked = pyqtSignal(PyQDict)
+    onAddWidget = Signal(object)
+    cardClicked = Signal(str, str, PyQList)
+    timeBtClicked = Signal(PyQDict)
 
 
 class ChoiceProjectPage(QWidget):
@@ -158,7 +150,7 @@ class ChoiceProjectPage(QWidget):
         logger.debug("---ChoiceProjectPage initializing---")
         start = time.time()
         self.breadcrumb = BreadcrumbBar(self)
-        self.view = PopUpAniStackedWidget(self)
+        self.view = QStackedWidget(self)
         self.vLayout = QVBoxLayout(self)
         self._dict: dict[str, ProjectPage] = {}
         self._rootPyQList = PyQList()
@@ -172,6 +164,9 @@ class ChoiceProjectPage(QWidget):
     def addPage(self, routeKey: str, name: str, datas: PyQList):
         if routeKey in self._dict:
             logger.error(f"Page {routeKey} already exists")
+            return
+        if not datas:
+            logger.debug(f"Page data is empty")
             return
         page = ProjectPage(datas, self)
         self.view.addWidget(page)
@@ -188,7 +183,6 @@ class ChoiceProjectPage(QWidget):
         page = self._dict.pop(routeKey)
         self.view.removeWidget(page)
         page.deleteLater()
-        del page
         logger.debug(f"Page {routeKey} removed")
 
     def setCurrentPage(self, index: int):
@@ -198,7 +192,6 @@ class ChoiceProjectPage(QWidget):
         deleteKeys = routeKeys[index + 1:]
         for key in deleteKeys:
             self.removePage(key)
-        del deleteKeys
 
     def __connectSignalToSlot(self):
         self.breadcrumb.currentIndexChanged.connect(self.setCurrentPage)
@@ -220,11 +213,11 @@ class ChoiceProjectPage(QWidget):
         self.vLayout.setSpacing(0)
         self.vLayout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
 
-    timeBtClicked = pyqtSignal(PyQDict)
+    timeBtClicked = Signal(PyQDict)
 
 
 if __name__ == '__main__':
-    from PyQt6.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication
 
     app = QApplication([])
     _w = ChoiceProjectPage()

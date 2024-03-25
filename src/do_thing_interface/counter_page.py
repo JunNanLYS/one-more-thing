@@ -1,9 +1,9 @@
 import time
 from typing import Optional
 
-from PyQt6.QtCore import QTimer, Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QPaintEvent, QPainter, QImage
-from PyQt6.QtWidgets import QVBoxLayout, QWidget, QHBoxLayout, QFrame, QSpacerItem, QSizePolicy
+from PySide6.QtCore import QTimer, Qt, Signal, QObject
+from PySide6.QtGui import QColor, QPaintEvent, QPainter, QImage
+from PySide6.QtWidgets import QVBoxLayout, QWidget, QHBoxLayout, QFrame, QSpacerItem, QSizePolicy
 from qfluentwidgets import ToolButton, FluentIcon, SwitchButton
 from qframelesswindow import TitleBarBase
 
@@ -11,6 +11,58 @@ import config as cfg
 from log import logger
 from src.py_qobject import PyQDict
 from src.widgets import (TimePicker, getNextHour, getNextMinute, getNextSecond)
+
+
+class PomodoroTime(QObject):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        ds = cfg.cfgDS
+        self.__enable = ds.get(ds.usePomodoroTime)
+        self.__onePomodoroTime = ds.get(ds.onePomodoroTime)
+        self.__pomodoroBreak = ds.get(ds.pomodoroBreak)
+        self.__afterFourPomodoro = ds.get(ds.afterFourPomodoro)
+        self.__connectSignalToSlot()
+
+    def enable(self) -> bool:
+        return self.__enable
+
+    def onePomodoroTime(self) -> int:
+        return self.__onePomodoroTime
+
+    def pomodoroBreak(self) -> int:
+        return self.__pomodoroBreak
+
+    def afterFourPomodoro(self) -> int:
+        return self.__afterFourPomodoro
+
+    def __connectSignalToSlot(self):
+        ds = cfg.cfgDS
+        ds.usePomodoroTime.valueChanged.connect(self.enableChanged)
+        ds.onePomodoroTime.valueChanged.connect(self.onePomodoroTimeChanged)
+        ds.pomodoroBreak.valueChanged.connect(self.pomodoroBreakChanged)
+        ds.afterFourPomodoro.valueChanged.connect(self.afterFourPomodoroChanged)
+
+        self.enableChanged.connect(self.__onEnableChanged)
+        self.onePomodoroTimeChanged.connect(self.__onOnePomodoroTimeChanged)
+        self.pomodoroBreakChanged.connect(self.__onPomodoroBreakChanged)
+        self.afterFourPomodoroChanged.connect(self.__onAfterFourPomodoroChanged)
+
+    def __onEnableChanged(self, enable: bool) -> None:
+        self.__enable = enable
+
+    def __onOnePomodoroTimeChanged(self, _time: int) -> None:
+        self.__onePomodoroTime = _time
+
+    def __onPomodoroBreakChanged(self, _time: int) -> None:
+        self.__pomodoroBreak = _time
+
+    def __onAfterFourPomodoroChanged(self, _time: int) -> None:
+        self.__afterFourPomodoro = _time
+
+    enableChanged = Signal(bool)
+    onePomodoroTimeChanged = Signal(int)
+    pomodoroBreakChanged = Signal(int)
+    afterFourPomodoroChanged = Signal(int)
 
 
 class MyWindow(QFrame):
@@ -202,7 +254,7 @@ class TimeClock(QWidget):
         self._layout.setSpacing(0)
         self._layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-    finished = pyqtSignal(int)  # Signal emit seconds
+    finished = Signal(int)  # Signal emit seconds
 
 
 class CounterPage(QWidget):
@@ -282,7 +334,6 @@ class CounterPage(QWidget):
         self.countDownBt.setEnabled(isStopped)
         self.backBt.setEnabled(isStopped)
         self._mode = mode
-        self.modeChanged.emit(mode)
 
     def updateData(self, seconds: int) -> None:
         if self._dict is None:
@@ -317,9 +368,10 @@ class CounterPage(QWidget):
     def __initLayout(self) -> None:
         topLayout = QHBoxLayout()
         topLayout.addWidget(self.backBt)
-        topLayout.addItem(QSpacerItem(0, 0, hPolicy=QSizePolicy.Policy.Expanding))
+        topLayout.addItem(QSpacerItem(0, 0, hData=QSizePolicy.Policy.Expanding))
         topLayout.addWidget(self.countDownBt)
         topLayout.addWidget(self.fullScreenBt)
+        topLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         controllerLayout = QHBoxLayout()
         controllerLayout.addWidget(self.stopBt)
@@ -329,18 +381,16 @@ class CounterPage(QWidget):
         bottomLayout = QHBoxLayout()
 
         self.vLayout.addLayout(topLayout)
-        self.vLayout.addWidget(self.timeClock)
+        self.vLayout.addWidget(self.timeClock, 1)
         self.vLayout.addLayout(controllerLayout)
-        self.vLayout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
+        self.vLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.vLayout.setContentsMargins(0, 0, 0, 0)
         self.vLayout.setSpacing(10)
-
-    modeChanged = pyqtSignal(str)  # Signal emit mode
 
 
 if __name__ == '__main__':
     import sys
-    from PyQt6.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication
 
     app = QApplication(sys.argv)
     win = CounterPage()

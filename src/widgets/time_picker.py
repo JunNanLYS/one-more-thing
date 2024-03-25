@@ -1,13 +1,11 @@
 from collections import deque
 from typing import Callable, Deque
 
-from PyQt6.QtCore import (pyqtProperty, pyqtSignal, QPropertyAnimation,
-                          QPoint, QEasingCurve, Qt, QSize)
-from PyQt6.QtGui import QWheelEvent
-from PyQt6.QtWidgets import QLabel, QWidget, QHBoxLayout
-from qfluentwidgets import TitleLabel, qconfig, Theme, isDarkTheme
-
-from log import logger
+from PySide6.QtCore import (Property, Signal, QPropertyAnimation,
+                            QPoint, QEasingCurve, Qt, QSize)
+from PySide6.QtGui import QWheelEvent
+from PySide6.QtWidgets import QLabel, QWidget, QHBoxLayout
+from qfluentwidgets import TitleLabel, qconfig, isDarkTheme
 
 
 class PickerItem(QLabel):
@@ -26,9 +24,8 @@ class PickerItem(QLabel):
         self.setFixedSize(100, 100)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self.updateUi()
-        qconfig.themeChangedFinished.connect(self.themeModeChanged)
-        self.themeModeChanged.connect(self.updateUi)
+        self.updateUI()
+        qconfig.themeChangedFinished.connect(self.updateUI)
 
     def getMetricsHeight(self):
         return self.fontMetrics().boundingRect(self.text()).height()
@@ -36,22 +33,22 @@ class PickerItem(QLabel):
     def getMetricsWidth(self):
         return self.fontMetrics().boundingRect(self.text()).width()
 
-    @pyqtProperty(float)
+    @Property(float)
     def textOpacity(self) -> float:
         return self._textOpacity
 
     @textOpacity.setter
     def textOpacity(self, value: float):
         self._textOpacity = value
-        self.updateUi()
+        self.updateUI()
 
-    def updateUi(self):
+    def updateUI(self):
         if isDarkTheme():
             self.setStyleSheet(f"color: rgba(255, 255, 255, {self._textOpacity});")
         else:
             self.setStyleSheet(f"color: rgba(0, 0, 0, {self._textOpacity});")
 
-    @pyqtProperty(int)
+    @Property(int)
     def fontSize(self) -> int:
         return self.font().pointSize()
 
@@ -90,8 +87,6 @@ class PickerItem(QLabel):
             self.opacityAnimation.start()
         else:
             self.moveAnimation.start()
-
-    themeModeChanged = pyqtSignal()
 
 
 class Picker(QWidget):
@@ -199,7 +194,7 @@ class Picker(QWidget):
         self.setFixedSize(self._itemSize.width() + self._margin[0] + self._margin[2],
                           3 * self._itemSize.height() + 2 * self._spacing)
 
-    wheelScrolled = pyqtSignal(str)
+    wheelScrolled = Signal(str)
 
 
 def getNextHour(current: str, direction: str) -> str:
@@ -304,7 +299,7 @@ class TimePicker(QWidget):
 
 if __name__ == '__main__':
     import sys
-    from PyQt6.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication
 
     app = QApplication(sys.argv)
     w = TimePicker()

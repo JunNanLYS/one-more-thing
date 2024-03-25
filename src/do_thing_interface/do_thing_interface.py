@@ -1,9 +1,8 @@
 import time
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (QFrame, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy)
-from qfluentwidgets import (SubtitleLabel, SegmentedToggleToolWidget, FluentIcon,
-                            PopUpAniStackedWidget, ToolButton, SwitchButton, TitleLabel)
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (QFrame, QVBoxLayout)
+from qfluentwidgets import (PopUpAniStackedWidget, TitleLabel)
 
 from log import logger
 from src.do_thing_interface.choice_project_page import ChoiceProjectPage
