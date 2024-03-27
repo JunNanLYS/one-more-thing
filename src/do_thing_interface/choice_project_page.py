@@ -1,10 +1,11 @@
+import gc
 import time
+from typing import Optional
 
-from PySide6.QtCore import Qt, QEasingCurve, Signal, QThread
+from PySide6.QtCore import Qt, Signal, QThread, QTimer, QEasingCurve
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QStackedWidget
-from qfluentwidgets import (ElevatedCardWidget, SubtitleLabel, SmoothScrollArea,
-                            IconWidget, TransparentPushButton, FlowLayout,
-                            BreadcrumbBar)
+from qfluentwidgets import (ElevatedCardWidget, SubtitleLabel, IconWidget, TransparentPushButton, FlowLayout,
+                            BreadcrumbBar, SmoothScrollArea)
 
 from log import logger
 from src.manager import SDManager
@@ -35,6 +36,8 @@ class ProjectCard(ElevatedCardWidget):
 
     def __connectSignalToSlot(self):
         self._dict.valueChanged.connect(self.resetText)
+        self.clicked.connect(self.__onCardClicked)
+        self.timeBt.clicked.connect(self.__onTimeBtClicked)
 
     def __initWidget(self):
         self.resetText()
@@ -64,6 +67,15 @@ class ProjectCard(ElevatedCardWidget):
         self.vLayout.setContentsMargins(10, 10, 10, 10)
         self.vLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
+    def __onCardClicked(self):
+        self.cardClicked.emit(self._dict["uid"], self._dict["name"], self._dict["subItems"])
+
+    def __onTimeBtClicked(self):
+        self.timeBtClicked.emit(self._dict)
+
+    cardClicked = Signal(str, str, PyQList)
+    timeBtClicked = Signal(PyQDict)
+
 
 class ProjectPage(SmoothScrollArea):
     def __init__(self, _list: PyQList, parent=None):
@@ -87,8 +99,8 @@ class ProjectPage(SmoothScrollArea):
         w = ProjectCard(obj, self)
         self.flowLayout.addWidget(w)
         self._map[obj] = w
-        w.clicked.connect(lambda: self.cardClicked.emit(obj["uid"], obj["name"], obj["subItems"]))
-        w.timeBt.clicked.connect(lambda: self.timeBtClicked.emit(obj))
+        w.cardClicked.connect(self.cardClicked)
+        w.timeBtClicked.connect(self.timeBtClicked)
 
     def removeWidget(self, obj: PyQDict):
         if not isinstance(obj, PyQDict):
@@ -149,12 +161,13 @@ class ChoiceProjectPage(QWidget):
         super().__init__(parent)
         logger.debug("---ChoiceProjectPage initializing---")
         start = time.time()
-        self.breadcrumb = BreadcrumbBar(self)
-        self.view = QStackedWidget(self)
-        self.vLayout = QVBoxLayout(self)
         self._dict: dict[str, ProjectPage] = {}
         self._rootPyQList = PyQList()
         self._rootPyQList.replaceList([d.storage.dict for d in SDManager.datas])
+        self.breadcrumb = BreadcrumbBar(self)
+        self.view = QStackedWidget(self)
+        self.vLayout = QVBoxLayout(self)
+        self.gcTimer: Optional[QTimer] = None
 
         self.__initWidget()
         self.addPage("root", "Main", self._rootPyQList)
@@ -183,6 +196,10 @@ class ChoiceProjectPage(QWidget):
         page = self._dict.pop(routeKey)
         self.view.removeWidget(page)
         page.deleteLater()
+        self.gcTimer = QTimer()
+        self.gcTimer.timeout.connect(gc.collect)
+        self.gcTimer.setSingleShot(True)
+        self.gcTimer.start(500)
         logger.debug(f"Page {routeKey} removed")
 
     def setCurrentPage(self, index: int):
