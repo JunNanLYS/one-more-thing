@@ -90,7 +90,7 @@ class PickerItem(QLabel):
 
 
 class Picker(QWidget):
-    def __init__(self, defaultTexts: list[str], parent=None):
+    def __init__(self, defaultTexts: tuple[str, str, str], parent=None):
         super().__init__(parent)
         self._acceptWheelEvent = True
         self._defaultTexts = defaultTexts
@@ -110,20 +110,7 @@ class Picker(QWidget):
         self._acceptWheelEvent = accept
 
     def default(self) -> None:
-        if len(self.deque):
-            for item in self.deque:
-                item.deleteLater()
-            self.deque.clear()
-        for i, text in enumerate(self._defaultTexts):
-            if i == 1:
-                item = PickerItem(text, self, 1.0, 50)
-            else:
-                item = PickerItem(text, self, 0.6, 40)
-            item.show()
-            self.deque.append(item)
-        self.deque[0].move(self.itemPosMap["top"])
-        self.deque[1].move(self.itemPosMap["center"])
-        self.deque[2].move(self.itemPosMap["bottom"])
+        self.replaceItem(self._defaultTexts)
 
     def floatUp(self, text: str) -> None:
         self._popLeftItem()
@@ -160,6 +147,22 @@ class Picker(QWidget):
             item.startAnimation(pos, 1.0 if i == 1 else 0.6, self._duration,
                                 QEasingCurve.Type.InOutQuad, True,
                                 fontSize=50 if i == 1 else 40)
+
+    def replaceItem(self, texts: tuple[str, str, str]) -> None:
+        if len(self.deque):
+            for item in self.deque:
+                item.deleteLater()
+            self.deque.clear()
+        for i, text in enumerate(texts):
+            if i == 1:
+                item = PickerItem(text, self, 1.0, 50)
+            else:
+                item = PickerItem(text, self, 0.6, 40)
+            item.show()
+            self.deque.append(item)
+        self.deque[0].move(self.itemPosMap["top"])
+        self.deque[1].move(self.itemPosMap["center"])
+        self.deque[2].move(self.itemPosMap["bottom"])
 
     def wheelEvent(self, e: QWheelEvent) -> None:
         if not self._acceptWheelEvent:
@@ -225,9 +228,9 @@ class TimePicker(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.hLayout = QHBoxLayout(self)
-        self.hourPicker = Picker(["23", "00", "01"], self)
-        self.minutePicker = Picker(["59", "00", "01"], self)
-        self.secondPicker = Picker(["59", "00", "01"], self)
+        self.hourPicker = Picker(("23", "00", "01"), self)
+        self.minutePicker = Picker(("59", "00", "01"), self)
+        self.secondPicker = Picker(("59", "00", "01"), self)
         self.delimiter1 = TitleLabel(":", self)
         self.delimiter2 = TitleLabel(":", self)
 
@@ -242,6 +245,27 @@ class TimePicker(QWidget):
         return f"{self.hourPicker.getCurrentSelected()}:" \
                f"{self.minutePicker.getCurrentSelected()}:" \
                f"{self.secondPicker.getCurrentSelected()}"
+
+    def setHour(self, hour: str | int) -> None:
+        hour = str(hour).zfill(2)
+        top = getNextHour(hour, "down")
+        center = hour
+        bottom = getNextHour(hour, "up")
+        self.hourPicker.replaceItem((top, center, bottom))
+
+    def setMinute(self, minute: str | int) -> None:
+        minute = str(minute).zfill(2)
+        top = getNextMinute(minute, "down")
+        center = minute
+        bottom = getNextMinute(minute, "up")
+        self.minutePicker.replaceItem((top, center, bottom))
+
+    def setSecond(self, second: str | int) -> None:
+        second = str(second).zfill(2)
+        top = getNextSecond(second, "down")
+        center = second
+        bottom = getNextSecond(second, "up")
+        self.secondPicker.replaceItem((top, center, bottom))
 
     def setAcceptWheelEvent(self, accept: bool) -> None:
         self.hourPicker.setAcceptWheelEvent(accept)
