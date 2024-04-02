@@ -6,7 +6,7 @@ from qfluentwidgets import (QConfig, ConfigItem, OptionsConfigItem, OptionsValid
 
 from src.py_qobject import PyQDict, PyQList
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 __abspath__ = os.path.abspath(os.path.dirname(__file__))
 __project__ = "one-more-thing"
 
@@ -72,9 +72,16 @@ class Config(QConfig):
     ]))
     useOpenGL = ConfigItem("personalization", "OpenGL", False)
 
+    def load(self, file=None, config=None):
+        qconfig.load(file)
+        super().load(file)
+
+    def __call__(self, *args, **kwargs):
+        return qconfig
+
 
 # config data storge
 cfgDS = Config()
-qconfig.load(configPath, cfgDS)
+cfgDS.load(configPath)
 if not os.path.exists(configPath):
     cfgDS.save()
