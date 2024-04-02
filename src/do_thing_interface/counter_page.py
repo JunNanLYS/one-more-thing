@@ -1,68 +1,55 @@
+import os.path
 import time
 from typing import Optional
 
-from PySide6.QtCore import QTimer, Qt, Signal, QObject
+from PySide6.QtMultimedia import QMediaPlayer
+from PySide6.QtCore import QTimer, Qt, Signal, QObject, QUrl
 from PySide6.QtGui import QColor, QPaintEvent, QPainter, QImage
 from PySide6.QtWidgets import QVBoxLayout, QWidget, QHBoxLayout, QFrame, QSpacerItem, QSizePolicy
-from qfluentwidgets import ToolButton, FluentIcon, SwitchButton
+from qfluentwidgets import (ToolButton, FluentIcon, SwitchButton, StateToolTip, BodyLabel)
 from qframelesswindow import TitleBarBase
 
 import config as cfg
+from config import cfgDS
 from log import logger
 from src.py_qobject import PyQDict
-from src.widgets import (TimePicker, getNextHour, getNextMinute, getNextSecond)
+from src.widgets import (TimePicker, getNextHour, getNextMinute, getNextSecond, Music, TimerLabel)
+
+PlaybackState = QMediaPlayer.PlaybackState
+dataStorage = cfgDS
 
 
 class PomodoroTime(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
-        ds = cfg.cfgDS
-        self.__enable = ds.get(ds.usePomodoroTime)
-        self.__onePomodoroTime = ds.get(ds.onePomodoroTime)
-        self.__pomodoroBreak = ds.get(ds.pomodoroBreak)
-        self.__afterFourPomodoro = ds.get(ds.afterFourPomodoro)
-        self.__connectSignalToSlot()
+        self.dataStorage = dataStorage
+        self.isBreakTime = False
+        self.count = 0
+        self.dataStorage.usePomodoroTime.valueChanged.connect(self.enableChanged)
+        self.dataStorage.onePomodoroTime.valueChanged.connect(self.onePomodoroTimeChanged)
 
-    def enable(self) -> bool:
-        return self.__enable
+    @property
+    def isFourTime(self) -> bool:
+        return self.count % 4 == 0
 
-    def onePomodoroTime(self) -> int:
-        return self.__onePomodoroTime
+    @property
+    def isEnabled(self) -> bool:
+        return self.dataStorage.usePomodoroTime.value
 
-    def pomodoroBreak(self) -> int:
-        return self.__pomodoroBreak
+    @property
+    def oneTime(self) -> int:
+        return self.dataStorage.onePomodoroTime.value
 
-    def afterFourPomodoro(self) -> int:
-        return self.__afterFourPomodoro
+    @property
+    def oneTimeBreak(self) -> int:
+        return self.dataStorage.pomodoroBreak.value
 
-    def __connectSignalToSlot(self):
-        ds = cfg.cfgDS
-        ds.usePomodoroTime.valueChanged.connect(self.enableChanged)
-        ds.onePomodoroTime.valueChanged.connect(self.onePomodoroTimeChanged)
-        ds.pomodoroBreak.valueChanged.connect(self.pomodoroBreakChanged)
-        ds.afterFourPomodoro.valueChanged.connect(self.afterFourPomodoroChanged)
+    @property
+    def fourTimeBreak(self) -> int:
+        return self.dataStorage.afterFourPomodoro.value
 
-        self.enableChanged.connect(self.__onEnableChanged)
-        self.onePomodoroTimeChanged.connect(self.__onOnePomodoroTimeChanged)
-        self.pomodoroBreakChanged.connect(self.__onPomodoroBreakChanged)
-        self.afterFourPomodoroChanged.connect(self.__onAfterFourPomodoroChanged)
-
-    def __onEnableChanged(self, enable: bool) -> None:
-        self.__enable = enable
-
-    def __onOnePomodoroTimeChanged(self, _time: int) -> None:
-        self.__onePomodoroTime = _time
-
-    def __onPomodoroBreakChanged(self, _time: int) -> None:
-        self.__pomodoroBreak = _time
-
-    def __onAfterFourPomodoroChanged(self, _time: int) -> None:
-        self.__afterFourPomodoro = _time
-
-    enableChanged = Signal(bool)
-    onePomodoroTimeChanged = Signal(int)
-    pomodoroBreakChanged = Signal(int)
-    afterFourPomodoroChanged = Signal(int)
+    enableChanged = Signal(object)
+    onePomodoroTimeChanged = Signal(object)
 
 
 class MyWindow(QFrame):
@@ -123,6 +110,7 @@ class TimeClock(QWidget):
         self._countDown = countDown
         self._layout = QVBoxLayout(self)
         self._timer = None
+        self.preSeconds = 0
         self.timePicker = TimePicker(self)
         self.finished.connect(lambda s: logger.info(f"Total seconds: {s}"))
 
@@ -130,6 +118,11 @@ class TimeClock(QWidget):
 
     def isCountDown(self) -> bool:
         return self._countDown
+
+    def isRunning(self) -> bool:
+        if self._timer is None:
+            return False
+        return self._timer.isActive()
 
     def pause(self) -> None:
         """Pause the timer"""
@@ -147,6 +140,15 @@ class TimeClock(QWidget):
         self._countDown = countDown
         self.timePicker.default()
         self.timePicker.setAcceptWheelEvent(countDown)
+
+    def setHour(self, hour: int | str) -> None:
+        self.timePicker.setHour(hour)
+
+    def setMinute(self, minute: int | str) -> None:
+        self.timePicker.setMinute(minute)
+
+    def setSecond(self, second: int | str) -> None:
+        self.timePicker.setSecond(second)
 
     def start(self) -> None:
         """Start the timer"""
@@ -166,9 +168,11 @@ class TimeClock(QWidget):
         """Stop the timer"""
         self._timer.stop()
         self.setCountDown(self._countDown)
-        self.finished.emit(self.__totalSeconds)
-        logger.info(f"Stopped at {self.__hours}:{self.__minutes}:{self.__seconds}")
+        temp = self.__totalSeconds
         self.resetTimeAttr()
+        self.preSeconds = temp
+        logger.info(f"Stopped at {self.__hours}:{self.__minutes}:{temp}")
+        self.finished.emit(temp)
 
     def _addSecond(self) -> None:
         current = self.timePicker.secondPicker.getBottomItemText()
@@ -270,15 +274,26 @@ class CounterPage(QWidget):
             self.titleBar.closeBtn.clicked.disconnect(self.window().close)
             self.titleBar.closeBtn.clicked.connect(callback)
             self.showMaximized()
-            cfgDS = cfg.cfgDS
-            self.setBackgroundImage(cfgDS.get(cfgDS.clockBackgroundImage))
+            self.setBackgroundImage(dataStorage.clockBackgroundImage.value)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         start = time.time()
         logger.debug("---CounterPage initializing---")
-        self._mode = "stop"
+        # flag
+        self.__earlyStop = False
+
+        # data
         self._dict: Optional[PyQDict] = None
+        self.music = Music(QUrl().fromLocalFile(os.path.join(
+            cfg.resourcePath,
+            "music",
+            "alarm clock",
+            "1.mp3"
+        )))
+        self.pomodoroTime = PomodoroTime(self)
+
+        # widget
         self.vLayout = QVBoxLayout(self)
         self.timeClock = TimeClock(self)
         self.fullScreenWindow = None
@@ -288,6 +303,9 @@ class CounterPage(QWidget):
         self.pauseBt = ToolButton(FluentIcon.PAUSE, self)
         self.startBt = ToolButton(FluentIcon.PLAY, self)
         self.stopBt = ToolButton(FluentIcon.ACCEPT, self)
+        self.breakTimer = TimerLabel(self)
+        self.pomodoroBreakLabel = BodyLabel("Pomodoro break time", self)
+        self.stateToolTip: Optional[StateToolTip] = None
         self.__initWidget()
         logger.info(f"CounterPage Initialization time: {time.time() - start}")
         logger.debug("---CounterPage initialized---")
@@ -308,32 +326,23 @@ class CounterPage(QWidget):
         self.fullScreenWindow.show()
         self.window().hide()
 
-    def mode(self):
-        return self._mode
-
-    def setCountDown(self, countDown: bool) -> None:
-        self.timeClock.setCountDown(countDown)
+    def playMusic(self):
+        if not self.countDownBt.isChecked():
+            return
+        self.music.play()
+        self.stateToolTip = StateToolTip(
+            title="Playing music",
+            content="timeout",
+            parent=self.window()
+        )
+        self.stateToolTip.move(self.stateToolTip.getSuitablePos())
+        self.stateToolTip.closedSignal.connect(self.music.stop)
+        self.music.setStateChangedSlot(
+            lambda state: self.stateToolTip.close() if state == PlaybackState.StoppedState else ...)
+        self.stateToolTip.show()
 
     def setDict(self, _dict: PyQDict) -> None:
         self._dict = _dict
-
-    def setMode(self, mode: str) -> None:
-        if mode == "start":
-            self.pauseBt.show()
-            self.stopBt.show()
-            self.startBt.hide()
-        elif mode == "pause":
-            self.startBt.show()
-            self.stopBt.show()
-            self.pauseBt.hide()
-        elif mode == "stop":
-            self.startBt.show()
-            self.pauseBt.hide()
-            self.stopBt.hide()
-        isStopped = mode == "stop"
-        self.countDownBt.setEnabled(isStopped)
-        self.backBt.setEnabled(isStopped)
-        self._mode = mode
 
     def updateData(self, seconds: int) -> None:
         if self._dict is None:
@@ -342,23 +351,148 @@ class CounterPage(QWidget):
         self._dict["hours"] += res
         logger.info(f"name: {self._dict['name']}, hours: {self._dict['hours']}")
 
+    def _onStart(self) -> None:
+        self.__earlyStop = False
+        self._setControllerState(1)
+        self._setBottomState(0)
+        pomodoro = self.pomodoroTime
+        if pomodoro.isEnabled:
+            pass
+        else:
+            pass
+        self.backBt.setEnabled(False)
+        self.countDownBt.setEnabled(False)
+        self.timeClock.start()
+        self.breakTimer.pause()
+
+    def _onPause(self) -> None:
+        self._setControllerState(2)
+        self._setBottomState(1)
+        self.breakTimer.start()
+        self.timeClock.pause()
+
+    def _onStop(self) -> None:
+        self.__earlyStop = True
+        self._setControllerState(0)
+        self._setBottomState(0)
+        self.timeClock.stop()
+        self.updateData(self.timeClock.preSeconds)
+        self.breakTimer.stop()
+        pomodoro = self.pomodoroTime
+        if pomodoro.isEnabled:
+            self.timeClock.setMinute(self.pomodoroTime.oneTime)
+        else:
+            self.countDownBt.setEnabled(True)
+        self.backBt.setEnabled(True)
+
+    def _onFinished(self, seconds: int) -> None:
+        if self.__earlyStop:
+            return
+        self._setControllerState(0)
+        self.breakTimer.stop()
+        pomodoro = self.pomodoroTime
+        if pomodoro.isEnabled:
+            pomodoro.isBreakTime = not pomodoro.isBreakTime
+            pomodoro.count += 1
+            if pomodoro.isBreakTime:
+                self._setControllerState(3)
+                self._setBottomState(2)
+                oneTimeBreak, fourTimeBreak = pomodoro.oneTimeBreak, pomodoro.fourTimeBreak
+                isFourTime = pomodoro.isFourTime
+                self.timeClock.setMinute(oneTimeBreak if not isFourTime else fourTimeBreak)
+                self.timeClock.start()
+            else:
+                self._setBottomState(0)
+        else:
+            self._setBottomState(0)
+            self.countDownBt.setEnabled(True)
+        self.backBt.setEnabled(True)
+        self.updateData(seconds)
+
+    def _onCountDownChanged(self, checked: bool) -> None:
+        if self.timeClock.isRunning():
+            return
+        self.timeClock.setCountDown(checked)
+
+    def _onPomodoroTimeEnableChanged(self, enable: bool) -> None:
+        if enable:
+            self.countDownBt.setChecked(True)
+            self.countDownBt.setEnabled(False)
+            self.timeClock.setCountDown(True)
+            self.timeClock.timePicker.setAcceptWheelEvent(False)
+            self.timeClock.timePicker.default()
+            self.timeClock.setMinute(self.pomodoroTime.oneTime)
+        else:
+            self.countDownBt.setEnabled(True)
+            self.timeClock.setCountDown(self.countDownBt.isChecked())
+            self.timeClock.timePicker.default()
+
+    def _onOnePomodoroTimeChanged(self, _time: int) -> None:
+        if self.timeClock.isRunning():
+            return
+        self.timeClock.setMinute(_time)
+
+    def _setControllerState(self, state: int) -> None:
+        """ set controller state
+        controller: [stop, start, pause]
+        0: stop
+        1: start
+        2: pause
+        3: normal
+        """
+        match state:
+            case 0:
+                self.pauseBt.hide()
+                self.stopBt.hide()
+                self.startBt.show()
+            case 1:
+                self.pauseBt.show()
+                self.stopBt.show()
+                self.startBt.hide()
+            case 2:
+                self.pauseBt.hide()
+                self.stopBt.show()
+                self.startBt.show()
+            case 3:
+                self.pauseBt.hide()
+                self.stopBt.hide()
+                self.startBt.hide()
+
+    def _setBottomState(self, state: int) -> None:
+        """ set bottom state
+        0: normal
+        1: pause time
+        2: pomodoro break time
+        """
+        match state:
+            case 0:
+                self.breakTimer.hide()
+                self.pomodoroBreakLabel.hide()
+            case 1:
+                self.breakTimer.show()
+                self.pomodoroBreakLabel.hide()
+            case 2:
+                self.breakTimer.hide()
+                self.pomodoroBreakLabel.show()
+
     def __connectSignalToSlot(self) -> None:
         self.fullScreenBt.clicked.connect(self.fullScreen)
-        self.countDownBt.checkedChanged.connect(self.setCountDown)
+        self.countDownBt.checkedChanged.connect(self._onCountDownChanged)
 
-        self.startBt.clicked.connect(self.timeClock.start)
-        self.startBt.clicked.connect(lambda: self.setMode("start"))
-        self.pauseBt.clicked.connect(self.timeClock.pause)
-        self.pauseBt.clicked.connect(lambda: self.setMode("pause"))
-        self.stopBt.clicked.connect(self.timeClock.stop)
-        self.stopBt.clicked.connect(lambda: self.setMode("stop"))
+        self.startBt.clicked.connect(self._onStart)
+        self.pauseBt.clicked.connect(self._onPause)
+        self.stopBt.clicked.connect(self._onStop)
 
-        self.timeClock.finished.connect(lambda: self.setMode("stop"))
         self.timeClock.finished.connect(self.backToWindow)
-        self.timeClock.finished.connect(self.updateData)
+        self.timeClock.finished.connect(self._onFinished)
+
+        self.pomodoroTime.enableChanged.connect(self._onPomodoroTimeEnableChanged)
+        self.pomodoroTime.onePomodoroTimeChanged.connect(self._onOnePomodoroTimeChanged)
 
     def __initWidget(self) -> None:
-        self.setMode("stop")
+        self._setControllerState(0)
+        self._setBottomState(0)
+        self._onPomodoroTimeEnableChanged(self.pomodoroTime.isEnabled)
         self.fullScreenBt.setToolTip("Full Screen")
         self.countDownBt.setOffText("count up")
         self.countDownBt.setOnText("count down")
@@ -379,10 +513,15 @@ class CounterPage(QWidget):
         controllerLayout.addWidget(self.startBt)
 
         bottomLayout = QHBoxLayout()
+        bottomLayout.addWidget(self.pomodoroBreakLabel)
+        bottomLayout.addWidget(self.breakTimer)
+        bottomLayout.setSpacing(10)
+        bottomLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.vLayout.addLayout(topLayout)
         self.vLayout.addWidget(self.timeClock, 1)
         self.vLayout.addLayout(controllerLayout)
+        self.vLayout.addLayout(bottomLayout)
         self.vLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.vLayout.setContentsMargins(0, 0, 0, 0)
         self.vLayout.setSpacing(10)
