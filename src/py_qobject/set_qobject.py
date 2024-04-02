@@ -1,4 +1,4 @@
-from PyQt6.QtCore import pyqtSignal
+from PySide6.QtCore import Signal
 
 from .base import PyQObjectBase
 
@@ -31,5 +31,5 @@ class PyQSet(PyQObjectBase):
     def __repr__(self):
         return self._set.__repr__()
 
-    elementAdded = pyqtSignal(object)
-    elementRemoved = pyqtSignal(object)
+    elementAdded = Signal(object)
+    elementRemoved = Signal(object)

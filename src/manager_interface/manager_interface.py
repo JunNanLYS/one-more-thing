@@ -2,9 +2,9 @@ import time
 from collections import deque
 from typing import Optional, Union, Callable
 
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QPoint, QObject
-from PyQt6.QtGui import QMouseEvent
-from PyQt6.QtWidgets import QWidget, QTreeWidgetItem, QVBoxLayout, QHBoxLayout
+from PySide6.QtCore import Qt, QThread, Signal, QPoint, QObject
+from PySide6.QtGui import QMouseEvent
+from PySide6.QtWidgets import QWidget, QTreeWidgetItem, QVBoxLayout, QHBoxLayout
 from qfluentwidgets import (TreeWidget, TitleLabel, RoundMenu, Action, FluentIcon,
                             MessageBoxBase, SubtitleLabel, LineEdit,
                             MessageBox, StrongBodyLabel)
@@ -63,23 +63,6 @@ class EditDataDialog(MessageBoxBase):
 
 
 class TreeWidgetItem(QTreeWidgetItem):
-    class Signal(QObject):
-        def __init__(self, addChild: Callable[[PyQDict], "TreeWidgetItem"],
-                     removeChild: Callable[[PyQDict], None],
-                     updateUI: Callable[[], None]):
-            super().__init__()
-            self.__addChild = addChild
-            self.__removeChild = removeChild
-            self.__updateUI = updateUI
-
-            self.onAddChild.connect(self.__addChild)
-            self.onRemoveChild.connect(self.__removeChild)
-            self.onDictValueChanged.connect(self.__updateUI)
-
-        onAddChild = pyqtSignal(object)
-        onRemoveChild = pyqtSignal(object)
-        onDictValueChanged = pyqtSignal()
-
     def __init__(self, _dict: PyQDict, parent: Union[None, "TreeWidgetItem"]):
         super().__init__()
         self.__parent = parent
@@ -99,12 +82,9 @@ class TreeWidgetItem(QTreeWidgetItem):
             _list = PyQList()
             _list.valueChanged.connect(self.dict.valueChanged, Qt.ConnectionType.UniqueConnection)
             self.dict["subItems"] = _list
-        self.signal = self.Signal(addChild=self.addChild,
-                                  removeChild=self.removeChild,
-                                  updateUI=self.updateUI)
-        _list.elementAppended.connect(self.signal.onAddChild)
-        _list.elementRemoved.connect(self.signal.onRemoveChild)
-        self.dict.valueChanged.connect(self.signal.onDictValueChanged)
+        _list.elementAppended.connect(self.addChild)
+        _list.elementRemoved.connect(self.removeChild)
+        self.dict.valueChanged.connect(self.updateUI)
 
     def addChild(self, _dict: PyQDict) -> "TreeWidgetItem":
         child = TreeWidgetItem(_dict, self)
@@ -122,9 +102,6 @@ class TreeWidgetItem(QTreeWidgetItem):
 
     def parent(self) -> Union["TreeWidgetItem", None]:
         return self.__parent
-
-    def __del__(self):
-        self.signal.deleteLater()
 
 
 def createTreeWidgetItem(_dict: PyQDict, parent: Union[None, TreeWidgetItem] = None) -> TreeWidgetItem:
@@ -305,7 +282,7 @@ class LazyTreeWidget(TreeWidget):
             addRoot,
         ])
 
-    addItemSignal = pyqtSignal(JsonDataStorage)
+    addItemSignal = Signal(JsonDataStorage)
 
 
 class ManagerInterface(QWidget):

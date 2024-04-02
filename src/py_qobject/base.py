@@ -1,5 +1,5 @@
-from PyQt6.QtCore import QObject, pyqtSignal
+from PySide6.QtCore import QObject, Signal
 
 
 class PyQObjectBase(QObject):
-    valueChanged = pyqtSignal()
+    valueChanged = Signal()

@@ -1,13 +1,11 @@
 from collections import deque
 from typing import Callable, Deque
 
-from PyQt6.QtCore import (pyqtProperty, pyqtSignal, QPropertyAnimation,
-                          QPoint, QEasingCurve, Qt, QSize)
-from PyQt6.QtGui import QWheelEvent
-from PyQt6.QtWidgets import QLabel, QWidget, QHBoxLayout
-from qfluentwidgets import TitleLabel, qconfig, Theme, isDarkTheme
-
-from log import logger
+from PySide6.QtCore import (Property, Signal, QPropertyAnimation,
+                            QPoint, QEasingCurve, Qt, QSize)
+from PySide6.QtGui import QWheelEvent
+from PySide6.QtWidgets import QLabel, QWidget, QHBoxLayout
+from qfluentwidgets import TitleLabel, qconfig, isDarkTheme
 
 
 class PickerItem(QLabel):
@@ -26,9 +24,8 @@ class PickerItem(QLabel):
         self.setFixedSize(100, 100)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self.updateUi()
-        qconfig.themeChangedFinished.connect(self.themeModeChanged)
-        self.themeModeChanged.connect(self.updateUi)
+        self.updateUI()
+        qconfig.themeChangedFinished.connect(self.updateUI)
 
     def getMetricsHeight(self):
         return self.fontMetrics().boundingRect(self.text()).height()
@@ -36,22 +33,22 @@ class PickerItem(QLabel):
     def getMetricsWidth(self):
         return self.fontMetrics().boundingRect(self.text()).width()
 
-    @pyqtProperty(float)
+    @Property(float)
     def textOpacity(self) -> float:
         return self._textOpacity
 
     @textOpacity.setter
     def textOpacity(self, value: float):
         self._textOpacity = value
-        self.updateUi()
+        self.updateUI()
 
-    def updateUi(self):
+    def updateUI(self):
         if isDarkTheme():
             self.setStyleSheet(f"color: rgba(255, 255, 255, {self._textOpacity});")
         else:
             self.setStyleSheet(f"color: rgba(0, 0, 0, {self._textOpacity});")
 
-    @pyqtProperty(int)
+    @Property(int)
     def fontSize(self) -> int:
         return self.font().pointSize()
 
@@ -91,11 +88,9 @@ class PickerItem(QLabel):
         else:
             self.moveAnimation.start()
 
-    themeModeChanged = pyqtSignal()
-
 
 class Picker(QWidget):
-    def __init__(self, defaultTexts: list[str], parent=None):
+    def __init__(self, defaultTexts: tuple[str, str, str], parent=None):
         super().__init__(parent)
         self._acceptWheelEvent = True
         self._defaultTexts = defaultTexts
@@ -115,20 +110,7 @@ class Picker(QWidget):
         self._acceptWheelEvent = accept
 
     def default(self) -> None:
-        if len(self.deque):
-            for item in self.deque:
-                item.deleteLater()
-            self.deque.clear()
-        for i, text in enumerate(self._defaultTexts):
-            if i == 1:
-                item = PickerItem(text, self, 1.0, 50)
-            else:
-                item = PickerItem(text, self, 0.6, 40)
-            item.show()
-            self.deque.append(item)
-        self.deque[0].move(self.itemPosMap["top"])
-        self.deque[1].move(self.itemPosMap["center"])
-        self.deque[2].move(self.itemPosMap["bottom"])
+        self.replaceItem(self._defaultTexts)
 
     def floatUp(self, text: str) -> None:
         self._popLeftItem()
@@ -166,6 +148,22 @@ class Picker(QWidget):
                                 QEasingCurve.Type.InOutQuad, True,
                                 fontSize=50 if i == 1 else 40)
 
+    def replaceItem(self, texts: tuple[str, str, str]) -> None:
+        if len(self.deque):
+            for item in self.deque:
+                item.deleteLater()
+            self.deque.clear()
+        for i, text in enumerate(texts):
+            if i == 1:
+                item = PickerItem(text, self, 1.0, 50)
+            else:
+                item = PickerItem(text, self, 0.6, 40)
+            item.show()
+            self.deque.append(item)
+        self.deque[0].move(self.itemPosMap["top"])
+        self.deque[1].move(self.itemPosMap["center"])
+        self.deque[2].move(self.itemPosMap["bottom"])
+
     def wheelEvent(self, e: QWheelEvent) -> None:
         if not self._acceptWheelEvent:
             return
@@ -199,7 +197,7 @@ class Picker(QWidget):
         self.setFixedSize(self._itemSize.width() + self._margin[0] + self._margin[2],
                           3 * self._itemSize.height() + 2 * self._spacing)
 
-    wheelScrolled = pyqtSignal(str)
+    wheelScrolled = Signal(str)
 
 
 def getNextHour(current: str, direction: str) -> str:
@@ -230,9 +228,9 @@ class TimePicker(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.hLayout = QHBoxLayout(self)
-        self.hourPicker = Picker(["23", "00", "01"], self)
-        self.minutePicker = Picker(["59", "00", "01"], self)
-        self.secondPicker = Picker(["59", "00", "01"], self)
+        self.hourPicker = Picker(("23", "00", "01"), self)
+        self.minutePicker = Picker(("59", "00", "01"), self)
+        self.secondPicker = Picker(("59", "00", "01"), self)
         self.delimiter1 = TitleLabel(":", self)
         self.delimiter2 = TitleLabel(":", self)
 
@@ -247,6 +245,27 @@ class TimePicker(QWidget):
         return f"{self.hourPicker.getCurrentSelected()}:" \
                f"{self.minutePicker.getCurrentSelected()}:" \
                f"{self.secondPicker.getCurrentSelected()}"
+
+    def setHour(self, hour: str | int) -> None:
+        hour = str(hour).zfill(2)
+        top = getNextHour(hour, "down")
+        center = hour
+        bottom = getNextHour(hour, "up")
+        self.hourPicker.replaceItem((top, center, bottom))
+
+    def setMinute(self, minute: str | int) -> None:
+        minute = str(minute).zfill(2)
+        top = getNextMinute(minute, "down")
+        center = minute
+        bottom = getNextMinute(minute, "up")
+        self.minutePicker.replaceItem((top, center, bottom))
+
+    def setSecond(self, second: str | int) -> None:
+        second = str(second).zfill(2)
+        top = getNextSecond(second, "down")
+        center = second
+        bottom = getNextSecond(second, "up")
+        self.secondPicker.replaceItem((top, center, bottom))
 
     def setAcceptWheelEvent(self, accept: bool) -> None:
         self.hourPicker.setAcceptWheelEvent(accept)
@@ -304,7 +323,7 @@ class TimePicker(QWidget):
 
 if __name__ == '__main__':
     import sys
-    from PyQt6.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication
 
     app = QApplication(sys.argv)
     w = TimePicker()

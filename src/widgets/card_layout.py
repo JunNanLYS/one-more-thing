@@ -1,6 +1,6 @@
 from typing import Union
 
-from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout, QLayoutItem, QWidget, QBoxLayout
+from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QLayoutItem, QWidget
 from qfluentwidgets import SimpleCardWidget
 
 

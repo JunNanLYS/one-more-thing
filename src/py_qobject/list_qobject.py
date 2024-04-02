@@ -1,4 +1,4 @@
-from PyQt6.QtCore import pyqtSignal
+from PySide6.QtCore import Signal
 
 from .base import PyQObjectBase
 
@@ -60,5 +60,5 @@ class PyQList(PyQObjectBase):
     def __repr__(self):
         return self._list.__repr__()
 
-    elementAppended = pyqtSignal(object)
-    elementRemoved = pyqtSignal(object)
+    elementAppended = Signal(object)
+    elementRemoved = Signal(object)

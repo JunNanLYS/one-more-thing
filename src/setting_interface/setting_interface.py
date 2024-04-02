@@ -1,7 +1,7 @@
 import os.path
 
-from PyQt6.QtCore import Qt, QEasingCurve
-from PyQt6.QtWidgets import QWidget, QFileDialog
+from PySide6.QtCore import Qt, QEasingCurve
+from PySide6.QtWidgets import QWidget, QFileDialog
 from qfluentwidgets import (SettingCardGroup, SmoothScrollArea, ExpandLayout,
                             PushSettingCard, FluentIcon, TitleLabel,
                             SwitchSettingCard, ComboBoxSettingCard,
@@ -40,7 +40,7 @@ class SettingInterface(SmoothScrollArea):
             icon=FluentIcon.STOP_WATCH,
             content="Set your one Pomodoro time",
             configItem=ds.onePomodoroTime,
-            texts=["30", "25", "20", "15"],
+            texts=["15", "20", "25", "30"],
             parent=self.doThingGroup
         )
         self.pomodoroBreak = OptionsSettingCard(
@@ -155,8 +155,8 @@ class SettingInterface(SmoothScrollArea):
         self.setWidget(self.scrollWidget)
         self.setWidgetResizable(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setScrollAnimation(Qt.Orientation.Vertical, 400, QEasingCurve.Type.OutQuint)
-        self.setScrollAnimation(Qt.Orientation.Horizontal, 400, QEasingCurve.Type.OutQuint)
+        self.setScrollAnimation(Qt.Orientation.Vertical, 400, QEasingCurve.OutQuint)
+        self.setScrollAnimation(Qt.Orientation.Horizontal, 400, QEasingCurve.OutQuint)
         self.setViewportMargins(0, 80, 0, 20)
         self.__initSettingGroup()
         self.__initLayout()
@@ -188,7 +188,7 @@ class SettingInterface(SmoothScrollArea):
 
 
 if __name__ == '__main__':
-    from PyQt6.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication
     import sys
 
     app = QApplication(sys.argv)
