@@ -48,7 +48,7 @@ class SettingInterface(SmoothScrollArea):
             icon=FluentIcon.STOP_WATCH,
             content="Set your break time",
             configItem=ds.pomodoroBreak,
-            texts=["5", "10"],
+            texts=["0", "5", "10"],
             parent=self.doThingGroup
         )
         self.afterFourPomodoro = OptionsSettingCard(
