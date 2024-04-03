@@ -168,10 +168,10 @@ class TimeClock(QWidget):
         """Stop the timer"""
         self._timer.stop()
         self.setCountDown(self._countDown)
+        logger.info(f"Stopped at {self.__hours}:{self.__minutes}:{self.__seconds}")
         temp = self.__totalSeconds
         self.resetTimeAttr()
         self.preSeconds = temp
-        logger.info(f"Stopped at {self.__hours}:{self.__minutes}:{temp}")
         self.finished.emit(temp)
 
     def _addSecond(self) -> None:
@@ -329,7 +329,10 @@ class CounterPage(QWidget):
     def playMusic(self):
         if not self.countDownBt.isChecked():
             return
-        self.music.play()
+        if self.stateToolTip is not None:
+            self.music.stop()
+            self.stateToolTip.deleteLater()
+            self.stateToolTip = None
         self.stateToolTip = StateToolTip(
             title="Playing music",
             content="timeout",
@@ -339,17 +342,25 @@ class CounterPage(QWidget):
         self.stateToolTip.closedSignal.connect(self.music.stop)
         self.music.setStateChangedSlot(
             lambda state: self.stateToolTip.close() if state == PlaybackState.StoppedState else ...)
+        self.music.play()
         self.stateToolTip.show()
 
     def setDict(self, _dict: PyQDict) -> None:
         self._dict = _dict
 
-    def updateData(self, seconds: int) -> None:
+    def updateData(self, seconds: int, breakTime: int = 0) -> None:
         if self._dict is None:
             logger.error("No data")
+            return
         res = round(seconds / 3600, 2)
         self._dict["hours"] += res
         logger.info(f"name: {self._dict['name']}, hours: {self._dict['hours']}")
+        breakTime = round(breakTime / 3600, 2)
+        if self._dict.get("breakTime") is None:
+            self._dict["breakTime"] = breakTime
+        else:
+            self._dict["breakTime"] += breakTime
+        logger.info(f"name: {self._dict['name']}, breakTime: {self._dict['breakTime']}")
 
     def _onStart(self) -> None:
         self.__earlyStop = False
@@ -376,7 +387,7 @@ class CounterPage(QWidget):
         self._setControllerState(0)
         self._setBottomState(0)
         self.timeClock.stop()
-        self.updateData(self.timeClock.preSeconds)
+        self.updateData(self.timeClock.preSeconds, self.breakTimer.seconds())
         self.breakTimer.stop()
         pomodoro = self.pomodoroTime
         if pomodoro.isEnabled:
@@ -391,9 +402,12 @@ class CounterPage(QWidget):
         self._setControllerState(0)
         self.breakTimer.stop()
         pomodoro = self.pomodoroTime
+        # Update data to PyQDict
+        if (pomodoro.isEnabled and not pomodoro.isBreakTime) or not pomodoro.isEnabled:
+            self.updateData(seconds, self.breakTimer.seconds())
         if pomodoro.isEnabled:
-            pomodoro.isBreakTime = not pomodoro.isBreakTime
             pomodoro.count += 1
+            pomodoro.isBreakTime = not pomodoro.isBreakTime
             if pomodoro.isBreakTime:
                 self._setControllerState(3)
                 self._setBottomState(2)
@@ -401,13 +415,21 @@ class CounterPage(QWidget):
                 isFourTime = pomodoro.isFourTime
                 self.timeClock.setMinute(oneTimeBreak if not isFourTime else fourTimeBreak)
                 self.timeClock.start()
+            # is not Pomodoro break time
             else:
+                self._setControllerState(0)
                 self._setBottomState(0)
+                self.timeClock.setCountDown(True)
+                self.timeClock.timePicker.setAcceptWheelEvent(False)
+                self.timeClock.timePicker.default()
+                self.timeClock.setMinute(self.pomodoroTime.oneTime)
+        # not enabled Pomodoro time
         else:
+            self._setControllerState(0)
             self._setBottomState(0)
             self.countDownBt.setEnabled(True)
         self.backBt.setEnabled(True)
-        self.updateData(seconds)
+        self.playMusic()
 
     def _onCountDownChanged(self, checked: bool) -> None:
         if self.timeClock.isRunning():
@@ -426,6 +448,7 @@ class CounterPage(QWidget):
             self.countDownBt.setEnabled(True)
             self.timeClock.setCountDown(self.countDownBt.isChecked())
             self.timeClock.timePicker.default()
+            self.pomodoroTime.isBreakTime = False
 
     def _onOnePomodoroTimeChanged(self, _time: int) -> None:
         if self.timeClock.isRunning():
