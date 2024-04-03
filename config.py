@@ -18,6 +18,7 @@ def getDefaultData() -> PyQDict:
         "icon": "No icon",
         "hours": 0.0,
         "uid": uuid.uuid4().hex,
+        "breakTime": 0.0,
         "subItems": _list
     }
     res = PyQDict()
@@ -63,7 +64,7 @@ class Config(QConfig):
                                       os.path.join(resourcePath, "images", "background", "3"))
     usePomodoroTime = ConfigItem("doThing", "usePomodoroTime", False)
     onePomodoroTime = OptionsConfigItem("doThing", "onePomodoroTime", 25, OptionsValidator([15, 20, 25, 30]))
-    pomodoroBreak = OptionsConfigItem("doThing", "pomodoroBreak", 5, OptionsValidator([5, 10]))
+    pomodoroBreak = OptionsConfigItem("doThing", "pomodoroBreak", 5, OptionsValidator([0, 5, 10]))
     afterFourPomodoro = OptionsConfigItem("doThing", "afterFourPomodoro", 15, OptionsValidator([10, 15, 20, 25, 30]))
 
     # personalization
