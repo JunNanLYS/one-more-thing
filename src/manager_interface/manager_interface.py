@@ -202,6 +202,8 @@ class LazyTreeWidget(TreeWidget):
             _dict["name"] = dialog.nameEdit.text()
 
         dialog.yesButton.clicked.connect(onConfirm)
+        dialog.yesButton.setText("Confirm")
+        dialog.cancelButton.setText("Cancel")
         dialog.exec()
 
     def __onRemoveSubItem(self):
