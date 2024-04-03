@@ -30,9 +30,8 @@ if __name__ == '__main__':
         logger.info(f"Application Start time: {time.time() - start}")
         app.exec()
         logger.debug("---Application exiting---\n")
-        cfg.cfgDS.save()
     except Exception as e:
         logger.error(f"{e}")
-        cfg.cfgDS.save()
     finally:
+        cfg.cfgDS.save()
         sys.exit()
