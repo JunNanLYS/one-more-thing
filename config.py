@@ -9,6 +9,7 @@ from src.py_qobject import PyQDict, PyQList
 __version__ = "0.0.2"
 __abspath__ = os.path.abspath(os.path.dirname(__file__))
 __project__ = "one-more-thing"
+__githubUrl__ = "https://github.com/JunNanLYS/one-more-thing/tree/main"
 
 
 def getDefaultData() -> PyQDict:
