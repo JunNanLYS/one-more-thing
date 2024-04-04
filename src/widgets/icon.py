@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Union
 
 from qfluentwidgets import Theme, getIconColor, FluentIconBase
 
@@ -12,6 +13,7 @@ class OMThingIcon(FluentIconBase, Enum):
     COFFEE = "coffee"
     DOCX = "docx"
     DOG = "dog"
+    DEBUG = "debug"
     ENGLISH = "english"
     EXERCISE = "exercise"
     FISH = "fish"
@@ -34,12 +36,12 @@ class OMThingIcon(FluentIconBase, Enum):
         return f"OMT-{self.value}"
 
     @classmethod
-    def deSerialization(cls, s: str) -> "OMThingIcon":
+    def deSerialization(cls, s: str) -> Union["OMThingIcon", str]:
         if "OMT" not in s:
-            raise ValueError("Not a OMThingIcon serialization string")
+            return ""
         name = s.removeprefix("OMT-")
         if not cls.exists(name):
-            raise ValueError(f"{name} not exists in OMThingIcon")
+            return ""
         name = name.upper()
         return eval(f"OMThingIcon.{name}")
 
