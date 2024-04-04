@@ -352,14 +352,11 @@ class CounterPage(QWidget):
         if self._dict is None:
             logger.error("No data")
             return
-        res = round(seconds / 3600, 2)
-        self._dict["hours"] += res
+        res = round(seconds / 3600 + self._dict.get("hours", 0.0), 2)
+        self._dict["hours"] = res
         logger.info(f"name: {self._dict['name']}, hours: {self._dict['hours']}")
-        breakTime = round(breakTime / 3600, 2)
-        if self._dict.get("breakTime") is None:
-            self._dict["breakTime"] = breakTime
-        else:
-            self._dict["breakTime"] += breakTime
+        breakTime = round(breakTime / 3600 + self._dict.get("breakTime", 0.0), 2)
+        self._dict["breakTime"] = breakTime
         logger.info(f"name: {self._dict['name']}, breakTime: {self._dict['breakTime']}")
 
     def _onStart(self) -> None:
