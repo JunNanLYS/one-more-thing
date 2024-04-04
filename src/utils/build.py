@@ -8,5 +8,5 @@ os.chdir(cur)
 command = "nuitka ./main.py --standalone --remove-output "
 command += "--include-data-dir=./data=./data --include-data-dir=./resources=./resources "
 command += "--enable-plugin=pyside6 --output-dir=temp/output --mingw64 "
-command += "--output-filename=OneMoreThing"
+command += "--output-filename=One more thing"
 system(command)

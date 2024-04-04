@@ -34,8 +34,14 @@ class TimerLabel(QWidget):
         self.mLabel.setText("00")
         self.sLabel.setText("00")
 
-    def text(self):
+    def text(self) -> str:
         return f"{self.hLabel.text()}:{self.mLabel.text()}:{self.sLabel.text()}"
+
+    def seconds(self) -> int:
+        h = int(self.hLabel.text()) * 3600
+        m = int(self.mLabel.text()) * 60
+        s = int(self.sLabel.text())
+        return h + m + s
 
     def start(self) -> None:
         if self.__curState == self.TimerState.STOPPED:
@@ -51,11 +57,8 @@ class TimerLabel(QWidget):
         self.timer.stop()
         self.stopped.emit()
         self.__curState = self.TimerState.STOPPED
-        self.hLabel.setText("00")
-        self.mLabel.setText("00")
-        self.sLabel.setText("00")
 
-    def _onThemeChanged(self):
+    def _onThemeChanged(self) -> None:
         if isDarkTheme():
             self.hLabel.setStyleSheet(f"color: rgb(255, 255, 255);")
             self.mLabel.setStyleSheet(f"color: rgb(255, 255, 255);")
@@ -92,10 +95,10 @@ class TimerLabel(QWidget):
         else:
             self.hLabel.setText(str(int(hours) + 1).zfill(2))
 
-    def __connectSignalToSlot(self):
+    def __connectSignalToSlot(self) -> None:
         qconfig.themeChangedFinished.connect(self._onThemeChanged)
 
-    def __initWidget(self):
+    def __initWidget(self) -> None:
         font = self.sLabel.font()
         font.setPixelSize(30)
         font.setFamily("Segoe UI")
@@ -112,7 +115,7 @@ class TimerLabel(QWidget):
         self.__initLayout()
         self.__connectSignalToSlot()
 
-    def __initLayout(self):
+    def __initLayout(self) -> None:
         self.hLayout.addWidget(self.hLabel)
         self.hLayout.addWidget(self.delimiter1)
         self.hLayout.addWidget(self.mLabel)

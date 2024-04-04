@@ -10,6 +10,7 @@ from qfluentwidgets import (ElevatedCardWidget, SubtitleLabel, IconWidget, Trans
 from log import logger
 from src.manager import SDManager
 from src.py_qobject import PyQDict, PyQList
+from src.widgets import OMThingIcon
 
 CARD_WIDTH = 240
 CARD_HEIGHT = 100
@@ -30,7 +31,7 @@ class ProjectCard(ElevatedCardWidget):
         def getTotalTime(_dict: PyQDict):
             return _dict["hours"] + sum([getTotalTime(d) for d in _dict.get("subItems", PyQList())])
 
-        self.iconWidget.setIcon(self._dict["icon"])
+        self.iconWidget.setIcon(OMThingIcon.deSerialization(self._dict["icon"]))
         self.name.setText(self._dict["name"])
         self.timeBt.setText(f"{getTotalTime(self._dict)} H")
 

@@ -7,7 +7,7 @@ from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QWidget, QTreeWidgetItem, QVBoxLayout, QHBoxLayout
 from qfluentwidgets import (TreeWidget, TitleLabel, RoundMenu, Action, FluentIcon,
                             MessageBoxBase, SubtitleLabel, LineEdit,
-                            MessageBox, StrongBodyLabel)
+                            MessageBox, StrongBodyLabel, PushButton)
 
 import config as cfg
 from log import logger
@@ -15,6 +15,7 @@ from src.manager import SDManager
 from src.py_qobject import PyQDict, PyQList
 from src.source_data import SourceData
 from src.utils import JsonDataStorage, getLabelBoundingRect, addSubItem, removeSubItem
+from src.widgets import IconPicker, OMThingIcon
 
 
 class AddDataDialog(MessageBoxBase):
@@ -48,6 +49,11 @@ class EditDataDialog(MessageBoxBase):
         self.nameEdit = LineEdit(self)
         self.nameEdit.setClearButtonEnabled(True)
         self.nameEdit.setText(_dict["name"])
+        self.iconBt = PushButton("Select icon", self)
+        self.iconBt.setIcon(OMThingIcon.deSerialization(_dict["icon"]))
+        self.iconPicker = IconPicker(self)
+        self.iconPicker.hide()
+        self.curIcon: str = _dict["icon"]
 
         self.nameLayout = QHBoxLayout(self)
         self.nameLayout.addWidget(self.nameLb)
@@ -55,11 +61,25 @@ class EditDataDialog(MessageBoxBase):
 
         self.viewLayout.addWidget(self.titleLb)
         self.viewLayout.addLayout(self.nameLayout)
+        self.viewLayout.addWidget(self.iconBt)
 
-        self.nameEdit.textChanged.connect(self.onTextChanged)
+        self.nameEdit.textChanged.connect(self._onTextChanged)
+        self.iconBt.clicked.connect(self._onBtClicked)
+        self.iconPicker.currentChanged.connect(self._onIconChanged)
 
-    def onTextChanged(self, text: str):
+    def deleteLater(self) -> None:
+        self.iconPicker.deleteLater()
+        super().deleteLater()
+
+    def _onTextChanged(self, text: str):
         self.yesButton.setDisabled(text == "")
+
+    def _onBtClicked(self):
+        self.iconPicker.flyout(self.iconBt, self.window())
+
+    def _onIconChanged(self, icon: OMThingIcon) -> None:
+        self.iconBt.setIcon(icon)
+        self.curIcon = icon.serialization()
 
 
 class TreeWidgetItem(QTreeWidgetItem):
@@ -69,6 +89,9 @@ class TreeWidgetItem(QTreeWidgetItem):
         self.dict = _dict
         self.map: dict[PyQDict, "TreeWidgetItem"] = {}
         self.setText(0, self.dict["name"])
+        icon = OMThingIcon.deSerialization(self.dict["icon"])
+        if icon:
+            self.setIcon(0, icon.qicon())
 
         # set font pixel size
         font = self.font(0)
@@ -99,6 +122,9 @@ class TreeWidgetItem(QTreeWidgetItem):
 
     def updateUI(self):
         self.setText(0, self.dict["name"])
+        icon = OMThingIcon.deSerialization(self.dict["icon"])
+        if icon:
+            self.setIcon(0, icon.qicon())
 
     def parent(self) -> Union["TreeWidgetItem", None]:
         return self.__parent
@@ -200,9 +226,13 @@ class LazyTreeWidget(TreeWidget):
 
         def onConfirm():
             _dict["name"] = dialog.nameEdit.text()
+            _dict["icon"] = dialog.curIcon
 
         dialog.yesButton.clicked.connect(onConfirm)
+        dialog.yesButton.setText("Confirm")
+        dialog.cancelButton.setText("Cancel")
         dialog.exec()
+        dialog.deleteLater()
 
     def __onRemoveSubItem(self):
         dialog = MessageBox(
